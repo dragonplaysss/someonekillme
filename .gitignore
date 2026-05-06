@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+venv/
+node_modules/
+bot_stdout.log
+bot_stderr.log
