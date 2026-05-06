@@ -11,13 +11,20 @@ class MusicSetup(commands.Cog):
         self.bot = bot
 
     async def setup_music_panel(self, channel):
-        webhook = await channel.create_webhook(name="Music Panel")
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://cdn.discordapp.com/attachments/1489351992118874177/1501576039120240744/35zhtfq.png?ex=69fc9329&is=69fb41a9&hm=84991aed73ed0fd90d39458ab0bbb9328a7985116840e2770883ac928394506c&") as resp:
+                avatar_bytes = await resp.read()
+
+        webhook = await channel.create_webhook(
+            name="Shorekeeper Music",
+            avatar=avatar_bytes,
+        )
 
         async with aiohttp.ClientSession() as session:
             wh = discord.Webhook.from_url(webhook.url, session=session)
             msg = await wh.send(
                 embed=discord.Embed(
-                    title="Music Player",
+                    title="Music Queue",
                     description="Idle",
                     color=0x5865F2,
                 ),

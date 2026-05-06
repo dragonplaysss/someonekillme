@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass, field
+from email.mime import message
 
 import aiohttp
 import discord
@@ -9,18 +10,19 @@ from discord.ext import commands
 from cogs.server_config import get_channel_id, get_guild_config, is_mod
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
-
-ytdl = yt_dlp.YoutubeDL({
-    "format": "bestaudio/best",
-    "noplaylist": True,
-    "default_search": "ytsearch",
-    "quiet": True,
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["android", "web"],
-        }
-    },
-})
+ytdl = yt_dlp.YoutubeDL(
+    {
+        "format": "bestaudio/best",
+        "noplaylist": True,
+        "default_search": "ytsearch",
+        "quiet": True,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],
+            }
+        },
+    }
+)
 
 FFMPEG_BEFORE_OPTIONS = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
 
@@ -71,12 +73,16 @@ class MusicControls(discord.ui.View):
     async def can_control(self, interaction):
         player = get_player_for_interaction(interaction)
         if not player or not player.now:
-            await interaction.response.send_message("Nothing is playing.", ephemeral=True)
+            await interaction.response.send_message(
+                "Nothing is playing.", ephemeral=True
+            )
             return None
 
         cfg = get_guild_config(interaction.guild.id)
         skip_role_id = cfg.get("skip_role")
-        has_skip_role = skip_role_id and any(role.id == skip_role_id for role in interaction.user.roles)
+        has_skip_role = skip_role_id and any(
+            role.id == skip_role_id for role in interaction.user.roles
+        )
 
         if (
             interaction.user.id == player.now.requester_id
@@ -124,7 +130,9 @@ class MusicControls(discord.ui.View):
         if not player:
             return
         player.loop = not player.loop
-        await interaction.response.send_message(f"Loop is now {'ON' if player.loop else 'OFF'}.")
+        await interaction.response.send_message(
+            f"Loop is now {'ON' if player.loop else 'OFF'}."
+        )
 
     @discord.ui.button(label="Stop", style=discord.ButtonStyle.danger)
     async def stop(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -191,11 +199,13 @@ class Music(commands.Cog):
             description = "\n".join(lines)
 
         data = {
-            "embeds": [{
-                "title": "Music Player",
-                "description": description,
-                "color": 0x5865F2,
-            }]
+            "embeds": [
+                {
+                    "title": "Music Player",
+                    "description": description,
+                    "color": 0x5865F2,
+                }
+            ]
         }
 
         async with aiohttp.ClientSession() as session:
@@ -257,7 +267,9 @@ class Music(commands.Cog):
             )
             vc.play(
                 source,
-                after=lambda error: self.bot.loop.create_task(self.play_next(guild, player)),
+                after=lambda error: self.bot.loop.create_task(
+                    self.play_next(guild, player)
+                ),
             )
 
         await self.update_panel(guild.id)
@@ -287,6 +299,7 @@ class Music(commands.Cog):
                 embed=embed,
                 view=MusicControls(self.bot),
             )
+
     async def command_play(self, message, query):
         music_channel_id = get_channel_id(message.guild.id, "music")
         if music_channel_id and message.channel.id != music_channel_id:
@@ -309,9 +322,22 @@ class Music(commands.Cog):
 
     async def command_skip(self, message):
         vc = message.guild.voice_client
+
         if not vc:
             return await message.channel.send("Nothing is playing.")
+
+        player = self.get_player(message)
+
+        if (
+            player
+            and player.now
+            and message.author.id != player.now.requester_id
+            and not is_mod(message.author)
+        ):
+            return await message.channel.send("Only the requester or mods can skip.")
+
         vc.stop()
+
         await message.channel.send("Skipped.")
 
     async def command_pause(self, message):
@@ -341,17 +367,52 @@ class Music(commands.Cog):
         await self.update_panel(message.guild.id)
         await message.channel.send("Stopped.")
 
+
     async def command_queue(self, message):
         player = self.get_player(message)
+
         if not player:
             return await message.channel.send("Join a voice channel first.")
-        await message.channel.send(format_queue(player))
+
+        embed = discord.Embed(
+            title="Music Queue",
+            color=0x5865F2,
+        )
+
+        if player.now:
+            embed.add_field(
+                name="Now Playing",
+                value=f"**{player.now.title}** ({player.now.duration})",
+                inline=False,
+            )
+
+        if player.queue:
+            embed.add_field(
+                name="Up Next",
+                value="\n".join(
+                    f"`{index + 1}` • {song.title} ({song.duration})"
+                    for index, song in enumerate(player.queue[:10])
+                ),
+                inline=False,
+            )
+        else:
+            embed.add_field(
+                name="Up Next",
+                value="Queue is empty.",
+                inline=False,
+            )
+
+        embed.set_footer(text=f"{len(player.queue)} songs queued")
+
+        await message.channel.send(embed=embed)
 
     async def command_nowplaying(self, message):
         player = self.get_player(message)
         if not player or not player.now:
             return await message.channel.send("Nothing is playing.")
-        await message.channel.send(f"Now playing: **{player.now.title}** ({player.now.duration})")
+        await message.channel.send(
+            f"Now playing: **{player.now.title}** ({player.now.duration})"
+        )
 
     async def command_loop(self, message):
         player = self.get_player(message)
@@ -385,7 +446,9 @@ class Music(commands.Cog):
 
         if keyword == "play":
             if not query:
-                return await message.channel.send("Use `@shorekeeper play ; song name`.")
+                return await message.channel.send(
+                    "Use `@shorekeeper play ; song name`."
+                )
             return await self.command_play(message, query)
         if keyword == "skip":
             return await self.command_skip(message)
