@@ -239,7 +239,7 @@ class Music(commands.Cog):
 
         vc = message.guild.voice_client
         if vc and vc.channel.id != voice_channel.id:
-            await vc.move_to(voice_channel)
+            return None
         elif not vc:
             vc = await voice_channel.connect()
         return vc
@@ -475,3 +475,6 @@ class Music(commands.Cog):
             return await self.command_loop(message)
         if keyword == "volume":
             return await self.command_volume(message, query)
+        
+async def setup(bot):
+    await bot.add_cog(Music(bot))

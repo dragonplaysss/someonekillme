@@ -52,3 +52,6 @@ class MusicSetup(commands.Cog):
             await message.channel.send("Music system setup complete.")
         except Exception as e:
             await message.channel.send(f"Music setup failed: {e}")
+            
+async def setup(bot):
+    await bot.add_cog(MusicSetup(bot))

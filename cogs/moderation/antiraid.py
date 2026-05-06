@@ -11,6 +11,13 @@ INVITE_REGEX = re.compile(
 )
 
 
+def bot_mentioned(message, bot_id):
+    return (
+        f"<@{bot_id}>" in message.content
+        or f"<@!{bot_id}>" in message.content
+    )
+
+
 class AntiRaid(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -32,12 +39,21 @@ class AntiRaid(commands.Cog):
                 delete_after=5,
             )
 
-        except Exception:
-            pass
+        except Exception as e:
+            print("ANTIRAID PUNISH ERROR:", e)
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot or not message.guild:
+            return
+
+        print("[ANTIRAID]", repr(message.content))
+
+        if not self.bot.user:
+            return
+
+        # ignore messages directed at bot
+        if bot_mentioned(message, self.bot.user.id):
             return
 
         content = message.content.strip()
@@ -92,8 +108,8 @@ class AntiRaid(commands.Cog):
                     delete_after=5,
                 )
 
-            except Exception:
-                pass
+            except Exception as e:
+                print("INVITE DELETE ERROR:", e)
 
             return
 
@@ -108,9 +124,10 @@ class AntiRaid(commands.Cog):
 
         if (
             len(letters) >= 15
-            and sum(c.isupper() for c in letters)
-            / len(letters)
-            > 0.7
+            and (
+                sum(c.isupper() for c in letters)
+                / len(letters)
+            ) > 0.7
         ):
             try:
                 await message.delete()
@@ -120,8 +137,8 @@ class AntiRaid(commands.Cog):
                     delete_after=5,
                 )
 
-            except Exception:
-                pass
+            except Exception as e:
+                print("CAPS DELETE ERROR:", e)
 
             return
 
@@ -160,7 +177,7 @@ class AntiRaid(commands.Cog):
         emoji_count = len(
             re.findall(
                 r"<a?:\w+:\d+>|[\U00010000-\U0010ffff]",
-                content
+                content,
             )
         )
 
@@ -173,8 +190,10 @@ class AntiRaid(commands.Cog):
                     delete_after=5,
                 )
 
-            except Exception:
-                pass
+            except Exception as e:
+                print("EMOJI DELETE ERROR:", e)
+
+            return
 
 
 async def setup(bot):

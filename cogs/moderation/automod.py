@@ -12,8 +12,6 @@ BAD_WORDS = {
     "faggot",
     "fag",
     "motherfucker",
-    "retard",
-    "retarded",
     "kys",
     "killyourself",
     "cunt",
@@ -33,11 +31,6 @@ BAD_WORDS = {
     "tranny",
     "kkk",
     "negro",
-    "fck",
-    "fk",
-    "fuc",
-    "fucc",
-    "fuuck",
 }
 
 
@@ -55,7 +48,6 @@ def normalize_text(text):
         "7": "t",
         "4": "a",
         "8": "b",
-        "v": "u",
     }
 
     for old, new in replacements.items():
@@ -108,7 +100,7 @@ class AutoMod(commands.Cog):
             if now - t < 5
         ]
 
-        if len(user_data) >= 6:
+        if len(user_data) >= 8:
             try:
                 await message.author.timeout(
                     discord.utils.utcnow()
