@@ -421,8 +421,6 @@ class WavelinkMusic(commands.Cog):
 
         if not player.playing:
             await status_message.edit(content=f"Loading: **{track_title(track)}**")
-            for fallback in fallback_tracks:
-                player.queue.put(fallback)
             try:
                 await player.play(track, volume=50)
             except Exception as e:
