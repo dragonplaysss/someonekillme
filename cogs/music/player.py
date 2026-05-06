@@ -7,7 +7,12 @@ import discord
 import yt_dlp
 from discord.ext import commands
 
-from cogs.server_config import get_channel_id, get_guild_config, is_mod
+from cogs.server_config import (
+    get_channel_id,
+    get_guild_config,
+    is_mod,
+    is_admin,
+)
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 ytdl = yt_dlp.YoutubeDL(
@@ -422,6 +427,10 @@ class Music(commands.Cog):
         await message.channel.send(f"Loop is now {'ON' if player.loop else 'OFF'}.")
 
     async def command_volume(self, message, value):
+        if not is_admin(message.author):
+            return await message.channel.send(
+                "Only admins can change volume."
+            )
         player = self.get_player(message)
         if not player:
             return await message.channel.send("Join a voice channel first.")

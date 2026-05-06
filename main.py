@@ -79,15 +79,7 @@ class MyBot(commands.Bot):
                         f"{type(e).__name__}: {e}"
                     )
 
-        guild = discord.Object(
-            id=1489351990705131571
-        )
-
-        self.tree.copy_global_to(guild=guild)
-
-        await self.tree.sync(guild=guild)
-
-        print("Slash commands synced")
+        await self.tree.sync()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
