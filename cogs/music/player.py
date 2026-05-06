@@ -61,9 +61,24 @@ def make_ytdl():
 
     cookies_file = os.getenv("YTDLP_COOKIES_FILE")
     if cookies_file:
-        options["cookiefile"] = cookies_file
+        options["cookiefile"] = os.path.abspath(os.path.expanduser(cookies_file))
 
     return yt_dlp.YoutubeDL(options)
+
+
+def cookie_file_error():
+    cookies_file = os.getenv("YTDLP_COOKIES_FILE")
+    if not cookies_file:
+        return "`YTDLP_COOKIES_FILE` is not set."
+
+    path = os.path.abspath(os.path.expanduser(cookies_file))
+    if not os.path.exists(path):
+        return f"`YTDLP_COOKIES_FILE` points to a missing file: `{path}`"
+
+    if os.path.getsize(path) == 0:
+        return f"`YTDLP_COOKIES_FILE` is empty: `{path}`"
+
+    return None
 
 
 def is_youtube_block_error(error):
@@ -447,6 +462,13 @@ class Music(commands.Cog):
         if dependency_error:
             return await message.channel.send(f"Music is not ready: {dependency_error}")
 
+        if DEFAULT_SEARCH_PROVIDER in {"youtube", "yt"}:
+            cookies_error = cookie_file_error()
+            if cookies_error:
+                return await message.channel.send(
+                    f"YouTube search needs cookies: {cookies_error}"
+                )
+
         await message.channel.send(f"Searching: **{query}**")
 
         try:
@@ -634,4 +656,8 @@ class Music(commands.Cog):
             await message.channel.send(f"Music command failed: {type(e).__name__}: {e}")
         
 async def setup(bot):
+    if os.getenv("MUSIC_BACKEND", "ytdlp").lower() == "wavelink":
+        print("[SKIPPED] cogs.music.player: MUSIC_BACKEND=wavelink")
+        return
+
     await bot.add_cog(Music(bot))

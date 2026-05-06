@@ -6,3 +6,4 @@ node_modules/
 bot_stdout.log
 bot_stderr.log
 cookies.txt
+shorekeeper.lock

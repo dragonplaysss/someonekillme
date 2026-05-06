@@ -38,6 +38,63 @@ python main.py
 
 `ffmpeg`, `libopus0`, and `PyNaCl` are required for music playback. `PyNaCl` is installed by `requirements.txt`; the system build packages above are included so it can install even if a wheel is not available for your Python version. The bot token is intentionally not committed to GitHub, so the cloud machine must have its own `.env` file or `DISCORD_TOKEN` environment variable.
 
+## Lavalink/Wavelink Music
+
+The recommended cloud backend is Wavelink with a local Lavalink server. In `.env`:
+
+```bash
+MUSIC_BACKEND=wavelink
+MUSIC_SEARCH_PROVIDER=youtube
+LAVALINK_URI=http://127.0.0.1:2333
+LAVALINK_PASSWORD=youshallnotpass
+```
+
+Install Java and download Lavalink:
+
+```bash
+sudo apt update
+sudo apt install -y openjdk-17-jre-headless
+mkdir -p ~/lavalink
+cd ~/lavalink
+wget -O Lavalink.jar https://github.com/lavalink-devs/Lavalink/releases/latest/download/Lavalink.jar
+cp /home/ubuntu/someonekillme/lavalink/application.yml ./application.yml
+java -jar Lavalink.jar
+```
+
+Keep that terminal open for a quick test, or create a service after it starts successfully:
+
+```ini
+[Unit]
+Description=Lavalink
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/lavalink
+ExecStart=/usr/bin/java -jar /home/ubuntu/lavalink/Lavalink.jar
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Save as `/etc/systemd/system/lavalink.service`, then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now lavalink
+sudo systemctl restart shorekeeper
+```
+
+If the bot replies twice, two bot processes are running. Stop the manual one and restart only systemd:
+
+```bash
+pkill -f "python.*main.py"
+sudo systemctl restart shorekeeper
+```
+
 ## YouTube cloud blocking
 
 YouTube sometimes blocks Oracle/cloud IPs with "Sign in to confirm you're not a bot." By default, the bot uses SoundCloud search for plain song names to avoid that. YouTube links can still be blocked unless cookies are configured.

@@ -4,3 +4,4 @@ aiohttp
 yt-dlp
 PyNaCl>=1.5,<2
 audioop-lts; python_version >= "3.13"
+wavelink>=3.5,<4

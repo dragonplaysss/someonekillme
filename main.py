@@ -21,6 +21,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+LOCK_HANDLE = None
 
 intents = discord.Intents.all()
 
@@ -108,5 +109,31 @@ async def main():
     await bot.start(TOKEN)
 
 
+def acquire_instance_lock():
+    global LOCK_HANDLE
+
+    lock_path = BASE_DIR / "shorekeeper.lock"
+    LOCK_HANDLE = open(lock_path, "w")
+
+    if os.name == "nt":
+        import msvcrt
+
+        try:
+            msvcrt.locking(LOCK_HANDLE.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError as exc:
+            raise RuntimeError("Another Shorekeeper bot process is already running.") from exc
+    else:
+        import fcntl
+
+        try:
+            fcntl.flock(LOCK_HANDLE.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            raise RuntimeError("Another Shorekeeper bot process is already running.") from exc
+
+    LOCK_HANDLE.write(str(os.getpid()))
+    LOCK_HANDLE.flush()
+
+
 if __name__ == "__main__":
+    acquire_instance_lock()
     asyncio.run(main())
