@@ -403,7 +403,6 @@ class WavelinkMusic(commands.Cog):
             return await status_message.edit(content=f"Search failed: {type(e).__name__}: {e}")
 
         track = tracks[0]
-        fallback_tracks = tracks[1:]
 
         save_many_metadata(
             tracks,
@@ -424,7 +423,12 @@ class WavelinkMusic(commands.Cog):
             await status_message.edit(content=f"Loading: **{track_title(track)}**")
             for fallback in fallback_tracks:
                 player.queue.put(fallback)
-            await player.play(track, volume=50)
+            try:
+                await player.play(track, volume=50)
+            except Exception as e:
+                return await status_message.edit(
+                    content=f"Playback failed: {type(e).__name__}: {e}"
+                )
         else:
             player.queue.put(track)
             await status_message.edit(content=f"Queued: **{track_title(track)}**")
