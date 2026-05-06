@@ -164,10 +164,19 @@ class WavelinkMusic(commands.Cog):
         if player.queue:
             next_track = player.queue.get()
             await player.play(next_track)
-            await self.announce_now_playing(player, next_track)
             return
 
         await self.update_panel(player.guild.id)
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_start(self, payload):
+        player = payload.player
+        track = payload.track
+        if not player or not track:
+            return
+
+        await self.update_panel(player.guild.id)
+        await self.announce_now_playing(player, track)
 
     @commands.Cog.listener()
     async def on_wavelink_track_exception(self, payload):
@@ -177,16 +186,29 @@ class WavelinkMusic(commands.Cog):
 
         channel_id = getattr(player, "shorekeeper_text_channel_id", None)
         channel = player.guild.get_channel(channel_id) if channel_id else None
+        status_message = await self.get_status_message(player)
+
         if player.queue:
             next_track = player.queue.get()
-            if channel:
-                await channel.send("Playback failed on Lavalink. Trying the next result.")
+            if status_message:
+                await status_message.edit(
+                    content=f"Playback failed. Trying next result: **{track_title(next_track)}**"
+                )
             await player.play(next_track)
-            await self.announce_now_playing(player, next_track)
             return
 
-        if channel:
-            await channel.send("Playback failed on Lavalink. No fallback result left.")
+        if status_message:
+            await status_message.edit(
+                content=(
+                    "Playback failed on every result. YouTube is resolving tracks but "
+                    "refusing the stream on this server. Try `MUSIC_SEARCH_PROVIDER=soundcloud` "
+                    "or a direct SoundCloud URL."
+                )
+            )
+        elif channel:
+            await channel.send("Playback failed on every result.")
+
+        await player.disconnect()
 
     def get_author_voice_channel(self, message):
         if not message.author.voice or not message.author.voice.channel:
@@ -226,6 +248,64 @@ class WavelinkMusic(commands.Cog):
             return None
 
     async def search_tracks(self, query):
+        if query.startswith(("http://", "https://")):
+            results = await wavelink.Playable.search(query)
+            if not results:
+                raise ValueError("No playable results found for that URL.")
+            return list(results)[:5]
+
+        sources = [source_for_provider()]
+        if MUSIC_SEARCH_PROVIDER in {"youtube", "yt", "ytmusic", "youtube_music", "youtube-music"}:
+            sources.append(wavelink.TrackSource.SoundCloud)
+        elif MUSIC_SEARCH_PROVIDER in {"soundcloud", "sc"}:
+            sources.append(wavelink.TrackSource.YouTubeMusic)
+
+        tracks = []
+        seen = set()
+
+        for source in sources:
+            try:
+                results = await wavelink.Playable.search(query, source=source)
+            except Exception as e:
+                print(f"[WAVELINK SEARCH FALLBACK ERROR] {source}: {type(e).__name__}: {e}")
+                continue
+
+            for track in list(results)[:5]:
+                key = track_key(track)
+                if key in seen:
+                    continue
+                seen.add(key)
+                tracks.append(track)
+
+            if tracks and source == wavelink.TrackSource.SoundCloud:
+                break
+
+        if tracks:
+            return tracks[:8]
+
+        raise ValueError(f"No playable results found on {MUSIC_SEARCH_PROVIDER}.")
+
+    async def get_status_message(self, player):
+        channel_id = getattr(player, "shorekeeper_text_channel_id", None)
+        message_id = getattr(player, "shorekeeper_status_message_id", None)
+        channel = player.guild.get_channel(channel_id) if channel_id else None
+        if not channel or not message_id:
+            return None
+
+        try:
+            return await channel.fetch_message(message_id)
+        except Exception:
+            return None
+
+    async def clear_status_message(self, player):
+        status_message = await self.get_status_message(player)
+        if status_message:
+            try:
+                await status_message.delete()
+            except Exception:
+                pass
+
+    async def search_track(self, query):
         if query.startswith(("http://", "https://")):
             results = await wavelink.Playable.search(query)
         else:
@@ -289,6 +369,8 @@ class WavelinkMusic(commands.Cog):
         if not channel:
             return
 
+        await self.clear_status_message(player)
+
         requester = get_track_metadata(track).get("requester", "Unknown")
         embed = discord.Embed(
             title="Now Playing",
@@ -312,13 +394,13 @@ class WavelinkMusic(commands.Cog):
         if not await self.ensure_node(message.channel):
             return
 
-        await message.channel.send(f"Searching: **{query}**")
+        status_message = await message.channel.send(f"Searching: **{query}**")
 
         try:
             tracks = await self.search_tracks(query)
         except Exception as e:
             print(f"[WAVELINK SEARCH ERROR] {type(e).__name__}: {e}")
-            return await message.channel.send(f"Search failed: {type(e).__name__}: {e}")
+            return await status_message.edit(content=f"Search failed: {type(e).__name__}: {e}")
 
         track = tracks[0]
         fallback_tracks = tracks[1:]
@@ -335,17 +417,17 @@ class WavelinkMusic(commands.Cog):
             return
 
         player.shorekeeper_text_channel_id = message.channel.id
+        player.shorekeeper_status_message_id = status_message.id
         player.shorekeeper_loop = getattr(player, "shorekeeper_loop", False)
 
         if not player.playing:
+            await status_message.edit(content=f"Loading: **{track_title(track)}**")
             for fallback in fallback_tracks:
                 player.queue.put(fallback)
             await player.play(track, volume=50)
-            await self.update_panel(message.guild.id)
-            await self.send_now_playing(message, player)
         else:
             player.queue.put(track)
-            await message.channel.send(f"Queued: **{track_title(track)}**")
+            await status_message.edit(content=f"Queued: **{track_title(track)}**")
             await self.update_panel(message.guild.id)
 
     async def command_skip(self, message):
