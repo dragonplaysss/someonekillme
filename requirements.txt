@@ -2,5 +2,5 @@ discord.py[voice]>=2.4,<3
 python-dotenv
 aiohttp
 yt-dlp
-PyNaCl
+PyNaCl>=1.5,<2
 audioop-lts; python_version >= "3.13"

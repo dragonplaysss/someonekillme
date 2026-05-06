@@ -24,7 +24,7 @@ On Ubuntu/Debian Oracle instances:
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip ffmpeg libopus0 git
+sudo apt install -y python3 python3-venv python3-pip ffmpeg libopus0 build-essential python3-dev git
 git clone YOUR_GITHUB_REPO_URL shorekeeper-revival
 cd shorekeeper-revival
 python3 -m venv .venv
@@ -36,7 +36,19 @@ nano .env
 python main.py
 ```
 
-`ffmpeg` and `libopus0` are required for music playback. The bot token is intentionally not committed to GitHub, so the cloud machine must have its own `.env` file or `DISCORD_TOKEN` environment variable.
+`ffmpeg`, `libopus0`, and `PyNaCl` are required for music playback. `PyNaCl` is installed by `requirements.txt`; the system build packages above are included so it can install even if a wheel is not available for your Python version. The bot token is intentionally not committed to GitHub, so the cloud machine must have its own `.env` file or `DISCORD_TOKEN` environment variable.
+
+## YouTube cloud blocking
+
+YouTube sometimes blocks Oracle/cloud IPs with "Sign in to confirm you're not a bot." The bot will try a SoundCloud search fallback for plain song searches, but YouTube links and many YouTube searches need cookies.
+
+Export YouTube cookies from a browser where YouTube works, upload them to the server as `cookies.txt`, then add this to `.env`:
+
+```bash
+YTDLP_COOKIES_FILE=/home/ubuntu/shorekeeper-revival/cookies.txt
+```
+
+Keep `cookies.txt` private and do not commit it to GitHub.
 
 ## systemd service example
 

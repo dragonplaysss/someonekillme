@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+import importlib.util
+import os
+import re
 import shutil
 
 import aiohttp
@@ -17,12 +20,21 @@ from cogs.server_config import (
 )
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
-ytdl = yt_dlp.YoutubeDL(
-    {
+FFMPEG_BEFORE_OPTIONS = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+URL_RE = re.compile(r"https?://", re.IGNORECASE)
+YOUTUBE_BLOCKED_PATTERNS = (
+    "sign in to confirm",
+    "confirm you're not a bot",
+    "confirm you are not a bot",
+)
+
+
+def make_ytdl():
+    options = {
         "format": "bestaudio/best",
         "noplaylist": True,
-        "default_search": "ytsearch1",
         "quiet": True,
+        "no_warnings": True,
         "socket_timeout": 15,
         "retries": 3,
         "extractor_retries": 3,
@@ -33,9 +45,30 @@ ytdl = yt_dlp.YoutubeDL(
             }
         },
     }
-)
 
-FFMPEG_BEFORE_OPTIONS = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+    cookies_file = os.getenv("YTDLP_COOKIES_FILE")
+    if cookies_file:
+        options["cookiefile"] = cookies_file
+
+    return yt_dlp.YoutubeDL(options)
+
+
+def is_youtube_block_error(error):
+    text = str(error).lower()
+    return any(pattern in text for pattern in YOUTUBE_BLOCKED_PATTERNS)
+
+
+def clean_download_error(error):
+    text = str(error)
+    text = re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+    if is_youtube_block_error(text):
+        return (
+            "YouTube is blocking this cloud server. Add a cookies file and set "
+            "`YTDLP_COOKIES_FILE`, or try a direct non-YouTube audio URL."
+        )
+
+    return text[:1500]
 
 
 @dataclass
@@ -74,6 +107,19 @@ def format_queue(player):
         f"{index + 1}. {song.title} ({song.duration}) - {song.requester}"
         for index, song in enumerate(player.queue[:10])
     )
+
+
+def missing_voice_dependency():
+    if importlib.util.find_spec("nacl") is None:
+        return (
+            "`PyNaCl` is not installed in this Python environment. Run "
+            "`python -m pip install -r requirements.txt` in the bot venv."
+        )
+
+    if not shutil.which("ffmpeg"):
+        return "`ffmpeg` is not installed on this machine. Run `sudo apt install -y ffmpeg`."
+
+    return None
 
 
 class MusicControls(discord.ui.View):
@@ -222,10 +268,32 @@ class Music(commands.Cog):
         async with aiohttp.ClientSession() as session:
             await session.patch(f"{webhook}/messages/{msg_id}", json=data)
 
+    def extract_info(self, query):
+        ytdl = make_ytdl()
+        search_terms = [query] if URL_RE.search(query) else [
+            f"ytsearch1:{query}",
+            f"scsearch1:{query}",
+        ]
+        youtube_error = None
+
+        for term in search_terms:
+            try:
+                return ytdl.extract_info(term, download=False)
+            except yt_dlp.utils.DownloadError as e:
+                if term.startswith("ytsearch") and is_youtube_block_error(e):
+                    youtube_error = e
+                    continue
+                raise
+
+        if youtube_error:
+            raise youtube_error
+
+        raise ValueError("No playable results found.")
+
     async def extract_song(self, query, requester):
         data = await asyncio.wait_for(
             self.bot.loop.run_in_executor(
-                None, lambda: ytdl.extract_info(query, download=False)
+                None, lambda: self.extract_info(query)
             ),
             timeout=30,
         )
@@ -348,10 +416,9 @@ class Music(commands.Cog):
         if music_channel_id and message.channel.id != music_channel_id:
             return
 
-        if not shutil.which("ffmpeg"):
-            return await message.channel.send(
-                "Music is not ready: `ffmpeg` is not installed on this machine."
-            )
+        dependency_error = missing_voice_dependency()
+        if dependency_error:
+            return await message.channel.send(f"Music is not ready: {dependency_error}")
 
         vc = await self.ensure_connected(message)
         if not vc:
@@ -369,7 +436,7 @@ class Music(commands.Cog):
             )
         except yt_dlp.utils.DownloadError as e:
             print(f"[MUSIC SEARCH ERROR] DownloadError: {e}")
-            return await message.channel.send(f"Search failed: {e}")
+            return await message.channel.send(f"Search failed: {clean_download_error(e)}")
         except Exception as e:
             print(f"[MUSIC SEARCH ERROR] {type(e).__name__}: {e}")
             return await message.channel.send(
