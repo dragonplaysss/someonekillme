@@ -160,5 +160,38 @@
         "channel": "𓆰│・general",
         "channel_id": 1501290145662632093,
         "content": "They all under mods"
+    },
+    {
+        "type": "voice_update",
+        "time": "2026-05-06 19:57:42 UTC",
+        "member": "dragonplaysss",
+        "member_id": 708390973712891976,
+        "before": null,
+        "after": "𓆰│・general-vc"
+    },
+    {
+        "type": "message",
+        "time": "2026-05-06 19:57:47 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "𓆰│・bot-commands",
+        "channel_id": 1501290145872351334,
+        "content": "<@1501600525559533671> play entha chitram kadha from dwaraka"
+    },
+    {
+        "type": "voice_update",
+        "time": "2026-05-06 19:57:47 UTC",
+        "member": "Shorekeeper#3672",
+        "member_id": 1501600525559533671,
+        "before": null,
+        "after": "𓆰│・general-vc"
+    },
+    {
+        "type": "voice_update",
+        "time": "2026-05-06 20:01:29 UTC",
+        "member": "Shorekeeper#3672",
+        "member_id": 1501600525559533671,
+        "before": "𓆰│・general-vc",
+        "after": null
     }
 ]
