@@ -1,0 +1,63 @@
+2026-05-07T03:06:21.578+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : Starting Launcher v4.2.2 using Java 21.0.9 with PID 34232 (C:\Users\sarat\Desktop\Shorekeeper revival\lavalink\Lavalink.jar started by sarat in C:\Users\sarat\Desktop\Shorekeeper revival\lavalink)
+2026-05-07T03:06:21.592+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : No active profile set, falling back to 1 default profile: "default"
+2026-05-07T03:06:22.506+05:30  INFO 34232 --- [Lavalink] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=3d6bf653-92ea-3fde-943a-10b9f8cd696e
+2026-05-07T03:06:22.886+05:30  INFO 34232 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Downloading https://maven.lavalink.dev/releases/dev/lavalink/youtube/youtube-plugin/1.11.4/youtube-plugin-1.11.4.jar
+2026-05-07T03:06:25.660+05:30  WARN 34232 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : A newer version of 'youtube-plugin' was found: '1.18.1', The current version is '1.11.4' please update the version in your configuration.
+2026-05-07T03:06:25.692+05:30  INFO 34232 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Loaded 'youtube-plugin-1.11.4.jar' (16 classes)
+2026-05-07T03:06:26.022+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : Started Launcher in 5.15 seconds (process running for 6.052)
+2026-05-07T03:06:26.199+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : 
+
+[32m       .  [31m _                  _ _       _    [32m__ _ _
+[32m      /\\ [31m| | __ ___   ____ _| (_)_ __ | | __[32m\ \ \ \
+[32m     ( ( )[31m| |/ _` \ \ / / _` | | | '_ \| |/ /[32m \ \ \ \
+[32m      \\/ [31m| | (_| |\ V / (_| | | | | | |   < [32m  ) ) ) )
+[32m       '  [31m|_|\__,_| \_/ \__,_|_|_|_| |_|_|\_\[32m / / / /
+[0m    =========================================[32m/_/_/_/[0m
+
+	Version:        4.2.2
+	Build time:     06.03.2026 23:24:16 UTC
+	Branch          HEAD
+	Commit:         e8503fd
+	Commit time:    06.03.2026 23:21:15 UTC
+	JVM:            21.0.9
+	Lavaplayer      2.2.6
+
+2026-05-07T03:06:26.220+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : No active profile set, falling back to 1 default profile: "default"
+2026-05-07T03:06:27.612+05:30  WARN 34232 --- [Lavalink] [main] io.undertow.websockets.jsr               : UT026010: Buffer pool was not set on WebSocketDeploymentInfo, the default pool will be used
+2026-05-07T03:06:27.658+05:30  INFO 34232 --- [Lavalink] [main] io.undertow.servlet                      : Initializing Spring embedded WebApplicationContext
+2026-05-07T03:06:27.660+05:30  INFO 34232 --- [Lavalink] [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1432 ms
+2026-05-07T03:06:28.691+05:30  INFO 34232 --- [Lavalink] [main] dev.lavalink.youtube.plugin.PluginInfo   : ********************************************
+YOUTUBE-SOURCE VERSION 1.18.1 AVAILABLE
+https://github.com/lavalink-devs/youtube-source/releases/tag/1.18.1
+Update to ensure the YouTube source remains operational!
+********************************************
+2026-05-07T03:06:28.717+05:30  INFO 34232 --- [Lavalink] [main] c.s.d.l.tools.GarbageCollectionMonitor   : GC monitoring enabled, reporting results every 2 minutes.
+2026-05-07T03:06:28.796+05:30  INFO 34232 --- [Lavalink] [main] d.l.youtube.plugin.YoutubePluginLoader   : YouTube source initialised with clients: WEB_REMIX, ANDROID_VR 
+2026-05-07T03:06:28.803+05:30  WARN 34232 --- [Lavalink] [main] l.server.config.SentryConfiguration      : Turning off sentry
+2026-05-07T03:06:29.048+05:30  INFO 34232 --- [Lavalink] [main] l.server.config.KoeConfiguration         : OS: WINDOWS, Arch: X86_64
+2026-05-07T03:06:29.050+05:30  INFO 34232 --- [Lavalink] [main] l.server.config.KoeConfiguration         : Enabling JDA-NAS
+2026-05-07T03:06:29.053+05:30  INFO 34232 --- [Lavalink] [main] c.s.l.c.natives.NativeLibraryLoader      : Native library udpqueue: loading with filter null
+2026-05-07T03:06:29.058+05:30  INFO 34232 --- [Lavalink] [main] c.s.l.c.natives.NativeLibraryLoader      : Native library udpqueue: successfully loaded.
+2026-05-07T03:06:29.444+05:30  INFO 34232 --- [Lavalink] [main] io.undertow                              : starting server: Undertow - 2.3.13.Final
+2026-05-07T03:06:29.456+05:30  INFO 34232 --- [Lavalink] [main] org.xnio                                 : XNIO version 3.8.8.Final
+2026-05-07T03:06:29.467+05:30  INFO 34232 --- [Lavalink] [main] org.xnio.nio                             : XNIO NIO Implementation Version 3.8.8.Final
+2026-05-07T03:06:29.648+05:30  INFO 34232 --- [Lavalink] [main] org.jboss.threads                        : JBoss Threads version 3.5.0.Final
+2026-05-07T03:06:29.759+05:30  INFO 34232 --- [Lavalink] [main] o.s.b.w.e.undertow.UndertowWebServer     : Undertow started on port 2333 (http) with context path '/'
+2026-05-07T03:06:29.776+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : Started Launcher in 3.733 seconds (process running for 9.805)
+2026-05-07T03:06:29.778+05:30  INFO 34232 --- [Lavalink] [main] lavalink.server.Launcher                 : Lavalink is ready to accept connections.
+2026-05-07T03:06:53.907+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] io.undertow.servlet                      : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-05-07T03:06:53.908+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-05-07T03:06:53.911+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-05-07T03:06:53.931+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] l.server.io.HandshakeInterceptorImpl     : Incoming connection from /127.0.0.1:61264
+2026-05-07T03:06:53.943+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] l.server.io.RequestLoggingFilter         : GET /v4/websocket
+2026-05-07T03:06:53.973+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] c.s.l.c.natives.NativeLibraryLoader      : Native library dave-jvm: loading with filter null
+2026-05-07T03:06:53.990+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] c.s.l.c.natives.NativeLibraryLoader      : Native library dave-jvm: successfully loaded.
+2026-05-07T03:06:54.009+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-2] lavalink.server.io.SocketServer          : Connection successfully established from Wavelink/3.5.2
+2026-05-07T03:06:54.263+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.io.RequestLoggingFilter         : PATCH /v4/sessions/as29btx4d7na05lb, payload={"resuming": true, "timeout": 60}
+2026-05-07T03:06:54.280+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.io.RequestLoggingFilter         : GET /v4/info
+2026-05-07T03:07:27.859+05:30  INFO 34232 --- [Lavalink] [XNIO-1 I/O-7] lavalink.server.io.SocketServer          : Connection closed from /127.0.0.1:61264 with status CloseStatus[code=1006, reason=] -- Session can be resumed within the next 60 seconds with id as29btx4d7na05lb
+2026-05-07T03:07:33.678+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.player.AudioLoaderRestHandler   : Got request to load for identifier "ytsearch:entha chitram kadha from dwaraka"
+2026-05-07T03:07:33.968+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] d.l.y.http.YoutubeAccessTokenTracker     : Updating YouTube visitor id succeeded, new one is CgtFMFkzRlR4U0F0RSif6e7PBjIKCgJJThIEGgAgNjoMCAEgno7lufGT7f1pYt8CCtwCMTguWVQ9aGcwTTZlQ2xEUUw4bF9Ob2NtaGFFSUk1OEh5SXdOZGVMbFlzVmtoVzA0cWwycTRhYzNzS2ZXU1Fwb0ZLdjQxVGVlb2ZTX0ZNbGdBRm5qYTA4eFIxaEVkWDBHRFByYlZPMEVQYXdDYm9oSVFJY2VzZnhiR1VkLTVmNzZkaEtyYWhSaWJOanNDa2xqNDRJWnVHUlUzV09PSl9UQmlyODlhUlVxRmcxdHBmQXo5RzVNNkdjbDVWZG10b3Exa1RnZTZkUUdmT0JhMVNmaDFBWUtEelE3a1RYR2dtU0tEVmlsUFNZbkJ5dDN2cmpveHYzbzNKdUdNZUY4VngzaXpUZlAyM2RSMV8zMWVFTllKcnVVZVg4OFZRUjdYTUdSc09PbnktdllRZUU2YVNhMUc3UVp6WjFhbUhFbTJJRG9BM3VqM0I5OUtGMEZla3I0ZVBNTGxJcWhIQnVB, next update will be after 600 seconds.
+2026-05-07T03:07:34.248+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.player.AudioLoaderRestHandler   : Loaded playlist Search results for: entha chitram kadha from dwaraka
+2026-05-07T03:07:34.275+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.io.RequestLoggingFilter         : GET /v4/loadtracks?identifier=ytsearch%3Aentha%20chitram%20kadha%20from%20dwaraka
+2026-05-07T03:08:27.870+05:30  INFO 34232 --- [Lavalink] [pool-2-thread-1] lavalink.server.io.SocketContext         : Shutting down 0 playing players.

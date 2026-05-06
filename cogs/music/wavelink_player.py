@@ -62,6 +62,11 @@ def get_track_metadata(track):
     return track_metadata.get(track_key(track), {})
 
 
+def save_many_metadata(tracks, **metadata):
+    for track in tracks:
+        save_track_metadata(track, **metadata)
+
+
 class WavelinkMusicControls(discord.ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
@@ -157,7 +162,9 @@ class WavelinkMusic(commands.Cog):
             return
 
         if player.queue:
-            await player.play(player.queue.get())
+            next_track = player.queue.get()
+            await player.play(next_track)
+            await self.announce_now_playing(player, next_track)
             return
 
         await self.update_panel(player.guild.id)
@@ -170,11 +177,16 @@ class WavelinkMusic(commands.Cog):
 
         channel_id = getattr(player, "shorekeeper_text_channel_id", None)
         channel = player.guild.get_channel(channel_id) if channel_id else None
-        if channel:
-            await channel.send("Playback failed on Lavalink. Skipping.")
-
         if player.queue:
-            await player.play(player.queue.get())
+            next_track = player.queue.get()
+            if channel:
+                await channel.send("Playback failed on Lavalink. Trying the next result.")
+            await player.play(next_track)
+            await self.announce_now_playing(player, next_track)
+            return
+
+        if channel:
+            await channel.send("Playback failed on Lavalink. No fallback result left.")
 
     def get_author_voice_channel(self, message):
         if not message.author.voice or not message.author.voice.channel:
@@ -213,7 +225,7 @@ class WavelinkMusic(commands.Cog):
             await message.channel.send(f"Voice connect failed: {type(e).__name__}: {e}")
             return None
 
-    async def search_track(self, query):
+    async def search_tracks(self, query):
         if query.startswith(("http://", "https://")):
             results = await wavelink.Playable.search(query)
         else:
@@ -222,7 +234,7 @@ class WavelinkMusic(commands.Cog):
         if not results:
             raise ValueError(f"No playable results found on {MUSIC_SEARCH_PROVIDER}.")
 
-        return results[0]
+        return list(results)[:5]
 
     async def update_panel(self, guild_id):
         cfg = get_guild_config(guild_id).get("music", {})
@@ -271,6 +283,27 @@ class WavelinkMusic(commands.Cog):
 
         await message.channel.send(embed=embed, view=WavelinkMusicControls(self.bot))
 
+    async def announce_now_playing(self, player, track):
+        channel_id = getattr(player, "shorekeeper_text_channel_id", None)
+        channel = player.guild.get_channel(channel_id) if channel_id else None
+        if not channel:
+            return
+
+        requester = get_track_metadata(track).get("requester", "Unknown")
+        embed = discord.Embed(
+            title="Now Playing",
+            description=f"**{track_title(track)}**",
+            color=0x5865F2,
+        )
+        embed.add_field(name="Duration", value=format_duration(getattr(track, "length", 0)))
+        embed.add_field(name="Requested By", value=requester)
+
+        artwork = getattr(track, "artwork", None)
+        if artwork:
+            embed.set_thumbnail(url=artwork)
+
+        await channel.send(embed=embed, view=WavelinkMusicControls(self.bot))
+
     async def command_play(self, message, query):
         music_channel_id = get_channel_id(message.guild.id, "music")
         if music_channel_id and message.channel.id != music_channel_id:
@@ -282,13 +315,16 @@ class WavelinkMusic(commands.Cog):
         await message.channel.send(f"Searching: **{query}**")
 
         try:
-            track = await self.search_track(query)
+            tracks = await self.search_tracks(query)
         except Exception as e:
             print(f"[WAVELINK SEARCH ERROR] {type(e).__name__}: {e}")
             return await message.channel.send(f"Search failed: {type(e).__name__}: {e}")
 
-        save_track_metadata(
-            track,
+        track = tracks[0]
+        fallback_tracks = tracks[1:]
+
+        save_many_metadata(
+            tracks,
             requester_id=message.author.id,
             requester=message.author.mention,
             text_channel_id=message.channel.id,
@@ -302,6 +338,8 @@ class WavelinkMusic(commands.Cog):
         player.shorekeeper_loop = getattr(player, "shorekeeper_loop", False)
 
         if not player.playing:
+            for fallback in fallback_tracks:
+                player.queue.put(fallback)
             await player.play(track, volume=50)
             await self.update_panel(message.guild.id)
             await self.send_now_playing(message, player)
