@@ -74,9 +74,6 @@ class MyBot(commands.Bot):
                 if not file.endswith(".py"):
                     continue
 
-                if file in SKIP_FILES:
-                    continue
-
                 path = os.path.join(root, file)
 
                 cog = (
@@ -85,6 +82,12 @@ class MyBot(commands.Bot):
                     .replace("/", ".")
                     .replace(".py", "")
                 )
+
+                # Most `__init__.py` files are skipped so packages like moderation only load
+                # their submodules once. `cogs.music` registers its cogs only from __init__.py.
+                if file in SKIP_FILES:
+                    if not (file == "__init__.py" and cog == "cogs.music"):
+                        continue
 
                 if cog in SKIP_EXTENSIONS:
                     continue
