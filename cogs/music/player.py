@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from email.mime import message
+import shutil
 
 import aiohttp
 import discord
@@ -21,8 +21,12 @@ ytdl = yt_dlp.YoutubeDL(
     {
         "format": "bestaudio/best",
         "noplaylist": True,
-        "default_search": "ytsearch",
+        "default_search": "ytsearch1",
         "quiet": True,
+        "socket_timeout": 15,
+        "retries": 3,
+        "extractor_retries": 3,
+        "source_address": "0.0.0.0",
         "extractor_args": {
             "youtube": {
                 "player_client": ["android", "web"],
@@ -219,10 +223,16 @@ class Music(commands.Cog):
             await session.patch(f"{webhook}/messages/{msg_id}", json=data)
 
     async def extract_song(self, query, requester):
-        data = await self.bot.loop.run_in_executor(
-            None, lambda: ytdl.extract_info(query, download=False)
+        data = await asyncio.wait_for(
+            self.bot.loop.run_in_executor(
+                None, lambda: ytdl.extract_info(query, download=False)
+            ),
+            timeout=30,
         )
         entry = data["entries"][0] if "entries" in data else data
+        if not entry:
+            raise ValueError("No results found.")
+
         duration = entry.get("duration", 0) or 0
         return Song(
             title=entry.get("title", "Unknown"),
@@ -241,9 +251,23 @@ class Music(commands.Cog):
 
         vc = message.guild.voice_client
         if vc and vc.channel.id != voice_channel.id:
+            await message.channel.send(
+                f"I am already playing in {vc.channel.mention}."
+            )
             return None
         elif not vc:
-            vc = await voice_channel.connect()
+            try:
+                vc = await asyncio.wait_for(voice_channel.connect(), timeout=20)
+            except asyncio.TimeoutError:
+                await message.channel.send("Voice connect timed out.")
+                return None
+            except discord.ClientException as e:
+                await message.channel.send(f"Voice connect failed: {e}")
+                return None
+            except Exception as e:
+                print(f"[MUSIC VOICE ERROR] {type(e).__name__}: {e}")
+                await message.channel.send(f"Voice connect failed: {type(e).__name__}: {e}")
+                return None
         return vc
 
     async def play_next(self, guild, player):
@@ -264,20 +288,32 @@ class Music(commands.Cog):
                 return
 
             player.now = song
-            source = discord.PCMVolumeTransformer(
-                discord.FFmpegPCMAudio(
-                    song.url,
-                    before_options=FFMPEG_BEFORE_OPTIONS,
-                    options="-vn",
-                ),
-                volume=player.volume,
-            )
-            vc.play(
-                source,
-                after=lambda error: self.bot.loop.create_task(
-                    self.play_next(guild, player)
-                ),
-            )
+            try:
+                source = discord.PCMVolumeTransformer(
+                    discord.FFmpegPCMAudio(
+                        song.url,
+                        before_options=FFMPEG_BEFORE_OPTIONS,
+                        options="-vn",
+                    ),
+                    volume=player.volume,
+                )
+                vc.play(
+                    source,
+                    after=lambda error: self.bot.loop.create_task(
+                        self.play_next(guild, player)
+                    ),
+                )
+            except Exception as e:
+                player.now = None
+                print(f"[MUSIC PLAY ERROR] {type(e).__name__}: {e}")
+                text_channel = guild.get_channel(player.text_channel_id)
+                if text_channel:
+                    await text_channel.send(
+                        f"Playback failed: {type(e).__name__}: {e}"
+                    )
+                if vc.is_connected():
+                    await vc.disconnect()
+                return
 
         await self.update_panel(guild.id)
 
@@ -312,13 +348,34 @@ class Music(commands.Cog):
         if music_channel_id and message.channel.id != music_channel_id:
             return
 
+        if not shutil.which("ffmpeg"):
+            return await message.channel.send(
+                "Music is not ready: `ffmpeg` is not installed on this machine."
+            )
+
         vc = await self.ensure_connected(message)
         if not vc:
             return
 
         player = self.get_player(message)
-        async with message.channel.typing():
-            song = await self.extract_song(query, message.author)
+        await message.channel.send(f"Searching: **{query}**")
+
+        try:
+            async with message.channel.typing():
+                song = await self.extract_song(query, message.author)
+        except asyncio.TimeoutError:
+            return await message.channel.send(
+                "Search timed out. YouTube may be blocking or stalling on this server."
+            )
+        except yt_dlp.utils.DownloadError as e:
+            print(f"[MUSIC SEARCH ERROR] DownloadError: {e}")
+            return await message.channel.send(f"Search failed: {e}")
+        except Exception as e:
+            print(f"[MUSIC SEARCH ERROR] {type(e).__name__}: {e}")
+            return await message.channel.send(
+                f"Search failed: {type(e).__name__}: {e}"
+            )
+
         player.queue.append(song)
 
         if not vc.is_playing() and not vc.is_paused():
@@ -448,35 +505,39 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        trigger = parse_shorekeeper_trigger(self.bot, message)
-        if not trigger:
-            return
+        try:
+            trigger = parse_shorekeeper_trigger(self.bot, message)
+            if not trigger:
+                return
 
-        keyword = trigger["keyword"]
-        query = trigger["extra"] or " ".join(trigger["args"])
+            keyword = trigger["keyword"]
+            query = trigger["extra"] or " ".join(trigger["args"])
 
-        if keyword == "play":
-            if not query:
-                return await message.channel.send(
-                    "Use `@shorekeeper play ; song name`."
-                )
-            return await self.command_play(message, query)
-        if keyword == "skip":
-            return await self.command_skip(message)
-        if keyword == "pause":
-            return await self.command_pause(message)
-        if keyword == "resume":
-            return await self.command_resume(message)
-        if keyword == "stop":
-            return await self.command_stop(message)
-        if keyword == "queue":
-            return await self.command_queue(message)
-        if keyword in {"nowplaying", "np"}:
-            return await self.command_nowplaying(message)
-        if keyword == "loop":
-            return await self.command_loop(message)
-        if keyword == "volume":
-            return await self.command_volume(message, query)
+            if keyword == "play":
+                if not query:
+                    return await message.channel.send(
+                        "Use `@shorekeeper play ; song name`."
+                    )
+                return await self.command_play(message, query)
+            if keyword == "skip":
+                return await self.command_skip(message)
+            if keyword == "pause":
+                return await self.command_pause(message)
+            if keyword == "resume":
+                return await self.command_resume(message)
+            if keyword == "stop":
+                return await self.command_stop(message)
+            if keyword == "queue":
+                return await self.command_queue(message)
+            if keyword in {"nowplaying", "np"}:
+                return await self.command_nowplaying(message)
+            if keyword == "loop":
+                return await self.command_loop(message)
+            if keyword == "volume":
+                return await self.command_volume(message, query)
+        except Exception as e:
+            print(f"[MUSIC COMMAND ERROR] {type(e).__name__}: {e}")
+            await message.channel.send(f"Music command failed: {type(e).__name__}: {e}")
         
 async def setup(bot):
     await bot.add_cog(Music(bot))

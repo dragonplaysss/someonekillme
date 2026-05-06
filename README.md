@@ -24,7 +24,7 @@ On Ubuntu/Debian Oracle instances:
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip ffmpeg git
+sudo apt install -y python3 python3-venv python3-pip ffmpeg libopus0 git
 git clone YOUR_GITHUB_REPO_URL shorekeeper-revival
 cd shorekeeper-revival
 python3 -m venv .venv
@@ -36,7 +36,7 @@ nano .env
 python main.py
 ```
 
-`ffmpeg` is required for music playback. The bot token is intentionally not committed to GitHub, so the cloud machine must have its own `.env` file or `DISCORD_TOKEN` environment variable.
+`ffmpeg` and `libopus0` are required for music playback. The bot token is intentionally not committed to GitHub, so the cloud machine must have its own `.env` file or `DISCORD_TOKEN` environment variable.
 
 ## systemd service example
 
