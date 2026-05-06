@@ -92,8 +92,10 @@ def clean_download_error(error):
 
     if is_youtube_block_error(text):
         return (
-            "YouTube is blocking this cloud server. Add a cookies file and set "
-            "`YTDLP_COOKIES_FILE`, or try a direct non-YouTube audio URL."
+            "YouTube is refusing this server (typical on cloud/VPS IPs). Prefer "
+            "`MUSIC_SEARCH_PROVIDER=soundcloud`, direct `.mp3`/stream URLs, or run your "
+            "player backend on a network that is not datacenter-blocked. "
+            "`YTDLP_COOKIES_FILE` may help for personal use but is not reliable on VPS."
         )
 
     return text[:1500]
@@ -654,10 +656,3 @@ class Music(commands.Cog):
         except Exception as e:
             print(f"[MUSIC COMMAND ERROR] {type(e).__name__}: {e}")
             await message.channel.send(f"Music command failed: {type(e).__name__}: {e}")
-        
-async def setup(bot):
-    if os.getenv("MUSIC_BACKEND", "ytdlp").lower() == "wavelink":
-        print("[SKIPPED] cogs.music.player: MUSIC_BACKEND=wavelink")
-        return
-
-    await bot.add_cog(Music(bot))

@@ -39,6 +39,13 @@ SKIP_FILES = {
     "views.py",
 }
 
+# Loaded via cogs.music package __init__ only (avoids duplicate cogs).
+SKIP_EXTENSIONS = {
+    "cogs.music.player",
+    "cogs.music.setup",
+    "cogs.music.wavelink_player",
+}
+
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -78,6 +85,9 @@ class MyBot(commands.Bot):
                     .replace("/", ".")
                     .replace(".py", "")
                 )
+
+                if cog in SKIP_EXTENSIONS:
+                    continue
 
                 try:
                     await self.load_extension(cog)

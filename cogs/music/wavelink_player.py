@@ -16,7 +16,7 @@ except ImportError:
 
 LAVALINK_URI = os.getenv("LAVALINK_URI", "http://127.0.0.1:2333")
 LAVALINK_PASSWORD = os.getenv("LAVALINK_PASSWORD", "youshallnotpass")
-MUSIC_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "youtube").lower()
+MUSIC_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "soundcloud").lower()
 track_metadata = {}
 
 
@@ -254,36 +254,19 @@ class WavelinkMusic(commands.Cog):
                 raise ValueError("No playable results found for that URL.")
             return list(results)[:5]
 
-        sources = [source_for_provider()]
-        if MUSIC_SEARCH_PROVIDER in {"youtube", "yt", "ytmusic", "youtube_music", "youtube-music"}:
-            sources.append(wavelink.TrackSource.SoundCloud)
-        elif MUSIC_SEARCH_PROVIDER in {"soundcloud", "sc"}:
-            sources.append(wavelink.TrackSource.YouTubeMusic)
+        # Prefix searches go to Lavalink so application.yml (e.g. client priority, plugins) applies.
+        try:
+            results = await wavelink.Playable.search(f"ytsearch:{query}")
+            if not results:
+                results = await wavelink.Playable.search(f"scsearch:{query}")
+        except Exception as e:
+            print(f"[WAVELINK SEARCH ERROR] {type(e).__name__}: {e}")
+            results = await wavelink.Playable.search(f"scsearch:{query}")
 
-        tracks = []
-        seen = set()
+        if results:
+            return list(results)[:8]
 
-        for source in sources:
-            try:
-                results = await wavelink.Playable.search(query, source=source)
-            except Exception as e:
-                print(f"[WAVELINK SEARCH FALLBACK ERROR] {source}: {type(e).__name__}: {e}")
-                continue
-
-            for track in list(results)[:5]:
-                key = track_key(track)
-                if key in seen:
-                    continue
-                seen.add(key)
-                tracks.append(track)
-
-            if tracks and source == wavelink.TrackSource.SoundCloud:
-                break
-
-        if tracks:
-            return tracks[:8]
-
-        raise ValueError(f"No playable results found on {MUSIC_SEARCH_PROVIDER}.")
+        raise ValueError("No playable results found.")
 
     async def get_status_message(self, player):
         channel_id = getattr(player, "shorekeeper_text_channel_id", None)
@@ -555,14 +538,3 @@ class WavelinkMusic(commands.Cog):
         except Exception as e:
             print(f"[WAVELINK COMMAND ERROR] {type(e).__name__}: {e}")
             await message.channel.send(f"Music command failed: {type(e).__name__}: {e}")
-
-
-async def setup(bot):
-    if os.getenv("MUSIC_BACKEND", "ytdlp").lower() != "wavelink":
-        print("[SKIPPED] cogs.music.wavelink_player: MUSIC_BACKEND is not wavelink")
-        return
-
-    if wavelink is None:
-        raise RuntimeError("wavelink is not installed. Run `python -m pip install -r requirements.txt`.")
-
-    await bot.add_cog(WavelinkMusic(bot))
