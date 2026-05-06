@@ -30,6 +30,17 @@ YOUTUBE_BLOCKED_PATTERNS = (
 DEFAULT_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "soundcloud").lower()
 
 
+class QuietYtdlpLogger:
+    def debug(self, message):
+        pass
+
+    def warning(self, message):
+        pass
+
+    def error(self, message):
+        pass
+
+
 def make_ytdl():
     options = {
         "format": "bestaudio/best",
@@ -40,6 +51,7 @@ def make_ytdl():
         "retries": 3,
         "extractor_retries": 3,
         "source_address": "0.0.0.0",
+        "logger": QuietYtdlpLogger(),
         "extractor_args": {
             "youtube": {
                 "player_client": ["android", "web"],
@@ -276,7 +288,7 @@ class Music(commands.Cog):
         elif DEFAULT_SEARCH_PROVIDER in {"youtube", "yt"}:
             search_terms = [f"ytsearch1:{query}", f"scsearch1:{query}"]
         else:
-            search_terms = [f"scsearch1:{query}", f"ytsearch1:{query}"]
+            search_terms = [f"scsearch1:{query}"]
 
         youtube_error = None
 
@@ -297,10 +309,12 @@ class Music(commands.Cog):
                     continue
                 raise
 
-        if youtube_error and DEFAULT_SEARCH_PROVIDER in {"youtube", "yt"}:
+        if youtube_error:
             raise youtube_error
 
-        raise ValueError("No playable results found.")
+        raise ValueError(
+            f"No playable results found on {DEFAULT_SEARCH_PROVIDER}. Try another song name."
+        )
 
     async def extract_song(self, query, requester):
         data = await asyncio.wait_for(
@@ -433,11 +447,6 @@ class Music(commands.Cog):
         if dependency_error:
             return await message.channel.send(f"Music is not ready: {dependency_error}")
 
-        vc = await self.ensure_connected(message)
-        if not vc:
-            return
-
-        player = self.get_player(message)
         await message.channel.send(f"Searching: **{query}**")
 
         try:
@@ -456,6 +465,11 @@ class Music(commands.Cog):
                 f"Search failed: {type(e).__name__}: {e}"
             )
 
+        vc = await self.ensure_connected(message)
+        if not vc:
+            return
+
+        player = self.get_player(message)
         player.queue.append(song)
 
         if not vc.is_playing() and not vc.is_paused():

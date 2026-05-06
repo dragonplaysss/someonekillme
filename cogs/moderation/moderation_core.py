@@ -15,17 +15,23 @@ NICK_PATH = "cogs/moderation/data2/nick_lock.json"
 
 def load_json(path, default):
     if not os.path.exists(path):
-        return default
+        save_json(path, default)
+        return json.loads(json.dumps(default))
     try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            raise ValueError("JSON root must be an object.")
+        return data
+    except (json.JSONDecodeError, ValueError):
         print(f"[Config Error] {path} is empty or invalid; using defaults.")
-        return default
+        save_json(path, default)
+        return json.loads(json.dumps(default))
 
 
 def save_json(path, data):
-    with open(path, "w") as f:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
 

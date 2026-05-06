@@ -32,19 +32,27 @@ DEFAULT_GUILD = {
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):
-        return DEFAULT_CONFIG.copy()
+        config = json.loads(json.dumps(DEFAULT_CONFIG))
+        save_config(config)
+        return config
 
     try:
-        with open(CONFIG_PATH, "r") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        if not isinstance(config, dict):
+            raise ValueError("Config root must be an object.")
+        config.setdefault("guilds", {})
+        return config
+    except (json.JSONDecodeError, ValueError):
         print(f"[Config Error] {CONFIG_PATH} is empty or invalid; using defaults.")
-        return DEFAULT_CONFIG.copy()
+        config = json.loads(json.dumps(DEFAULT_CONFIG))
+        save_config(config)
+        return config
 
 
 def save_config(config):
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-    with open(CONFIG_PATH, "w") as f:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
 
 
