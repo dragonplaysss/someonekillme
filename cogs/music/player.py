@@ -27,6 +27,7 @@ YOUTUBE_BLOCKED_PATTERNS = (
     "confirm you're not a bot",
     "confirm you are not a bot",
 )
+DEFAULT_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "soundcloud").lower()
 
 
 def make_ytdl():
@@ -270,22 +271,33 @@ class Music(commands.Cog):
 
     def extract_info(self, query):
         ytdl = make_ytdl()
-        search_terms = [query] if URL_RE.search(query) else [
-            f"ytsearch1:{query}",
-            f"scsearch1:{query}",
-        ]
+        if URL_RE.search(query):
+            search_terms = [query]
+        elif DEFAULT_SEARCH_PROVIDER in {"youtube", "yt"}:
+            search_terms = [f"ytsearch1:{query}", f"scsearch1:{query}"]
+        else:
+            search_terms = [f"scsearch1:{query}", f"ytsearch1:{query}"]
+
         youtube_error = None
 
         for term in search_terms:
             try:
-                return ytdl.extract_info(term, download=False)
+                data = ytdl.extract_info(term, download=False)
+                if "entries" not in data:
+                    return data
+                if data["entries"]:
+                    return data
+                if term.startswith("ytsearch"):
+                    continue
+                if term.startswith("scsearch"):
+                    continue
             except yt_dlp.utils.DownloadError as e:
                 if term.startswith("ytsearch") and is_youtube_block_error(e):
                     youtube_error = e
                     continue
                 raise
 
-        if youtube_error:
+        if youtube_error and DEFAULT_SEARCH_PROVIDER in {"youtube", "yt"}:
             raise youtube_error
 
         raise ValueError("No playable results found.")
@@ -297,7 +309,8 @@ class Music(commands.Cog):
             ),
             timeout=30,
         )
-        entry = data["entries"][0] if "entries" in data else data
+        entries = data.get("entries") if isinstance(data, dict) else None
+        entry = entries[0] if entries else data
         if not entry:
             raise ValueError("No results found.")
 
@@ -432,7 +445,7 @@ class Music(commands.Cog):
                 song = await self.extract_song(query, message.author)
         except asyncio.TimeoutError:
             return await message.channel.send(
-                "Search timed out. YouTube may be blocking or stalling on this server."
+                "Search timed out. The audio provider may be blocking or stalling on this server."
             )
         except yt_dlp.utils.DownloadError as e:
             print(f"[MUSIC SEARCH ERROR] DownloadError: {e}")

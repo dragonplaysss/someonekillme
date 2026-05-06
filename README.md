@@ -40,7 +40,13 @@ python main.py
 
 ## YouTube cloud blocking
 
-YouTube sometimes blocks Oracle/cloud IPs with "Sign in to confirm you're not a bot." The bot will try a SoundCloud search fallback for plain song searches, but YouTube links and many YouTube searches need cookies.
+YouTube sometimes blocks Oracle/cloud IPs with "Sign in to confirm you're not a bot." By default, the bot uses SoundCloud search for plain song names to avoid that. YouTube links can still be blocked unless cookies are configured.
+
+Make sure `.env` contains:
+
+```bash
+MUSIC_SEARCH_PROVIDER=soundcloud
+```
 
 Export YouTube cookies from a browser where YouTube works, upload them to the server as `cookies.txt`, then add this to `.env`:
 
