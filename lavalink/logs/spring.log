@@ -67,3 +67,38 @@ Update to ensure the YouTube source remains operational!
 2026-05-07T14:38:23.681+05:30  INFO 32980 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Found plugin 'youtube-plugin' version '1.18.1'
 2026-05-07T14:38:25.213+05:30  INFO 32980 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Loaded 'youtube-plugin-1.18.1.jar' (17 classes)
 2026-05-07T14:38:25.682+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : Started Launcher in 4.526 seconds (process running for 5.679)
+2026-05-07T14:38:25.920+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : 
+
+[32m       .  [31m _                  _ _       _    [32m__ _ _
+[32m      /\\ [31m| | __ ___   ____ _| (_)_ __ | | __[32m\ \ \ \
+[32m     ( ( )[31m| |/ _` \ \ / / _` | | | '_ \| |/ /[32m \ \ \ \
+[32m      \\/ [31m| | (_| |\ V / (_| | | | | | |   < [32m  ) ) ) )
+[32m       '  [31m|_|\__,_| \_/ \__,_|_|_|_| |_|_|\_\[32m / / / /
+[0m    =========================================[32m/_/_/_/[0m
+
+	Version:        4.2.2
+	Build time:     06.03.2026 23:24:16 UTC
+	Branch          HEAD
+	Commit:         e8503fd
+	Commit time:    06.03.2026 23:21:15 UTC
+	JVM:            21.0.9
+	Lavaplayer      2.2.6
+
+2026-05-07T14:38:25.958+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : No active profile set, falling back to 1 default profile: "default"
+2026-05-07T14:38:27.565+05:30  WARN 32980 --- [Lavalink] [main] io.undertow.websockets.jsr               : UT026010: Buffer pool was not set on WebSocketDeploymentInfo, the default pool will be used
+2026-05-07T14:38:27.600+05:30  INFO 32980 --- [Lavalink] [main] io.undertow.servlet                      : Initializing Spring embedded WebApplicationContext
+2026-05-07T14:38:27.602+05:30  INFO 32980 --- [Lavalink] [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1633 ms
+2026-05-07T14:38:28.655+05:30  INFO 32980 --- [Lavalink] [main] c.s.d.l.tools.GarbageCollectionMonitor   : GC monitoring enabled, reporting results every 2 minutes.
+2026-05-07T14:38:28.838+05:30  INFO 32980 --- [Lavalink] [main] d.l.youtube.plugin.YoutubePluginLoader   : YouTube source initialised with clients: WEB_REMIX, WEB, TVHTML5 
+2026-05-07T14:38:28.854+05:30  WARN 32980 --- [Lavalink] [main] l.server.config.SentryConfiguration      : Turning off sentry
+2026-05-07T14:38:29.285+05:30  INFO 32980 --- [Lavalink] [main] l.server.config.KoeConfiguration         : OS: WINDOWS, Arch: X86_64
+2026-05-07T14:38:29.288+05:30  INFO 32980 --- [Lavalink] [main] l.server.config.KoeConfiguration         : Enabling JDA-NAS
+2026-05-07T14:38:29.292+05:30  INFO 32980 --- [Lavalink] [main] c.s.l.c.natives.NativeLibraryLoader      : Native library udpqueue: loading with filter null
+2026-05-07T14:38:29.303+05:30  INFO 32980 --- [Lavalink] [main] c.s.l.c.natives.NativeLibraryLoader      : Native library udpqueue: successfully loaded.
+2026-05-07T14:38:29.734+05:30  INFO 32980 --- [Lavalink] [main] io.undertow                              : starting server: Undertow - 2.3.13.Final
+2026-05-07T14:38:29.770+05:30  INFO 32980 --- [Lavalink] [main] org.xnio                                 : XNIO version 3.8.8.Final
+2026-05-07T14:38:29.793+05:30  INFO 32980 --- [Lavalink] [main] org.xnio.nio                             : XNIO NIO Implementation Version 3.8.8.Final
+2026-05-07T14:38:30.012+05:30  INFO 32980 --- [Lavalink] [main] org.jboss.threads                        : JBoss Threads version 3.5.0.Final
+2026-05-07T14:38:30.154+05:30  INFO 32980 --- [Lavalink] [main] o.s.b.w.e.undertow.UndertowWebServer     : Undertow started on port 2333 (http) with context path '/'
+2026-05-07T14:38:30.172+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : Started Launcher in 4.453 seconds (process running for 10.171)
+2026-05-07T14:38:30.174+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : Lavalink is ready to accept connections.

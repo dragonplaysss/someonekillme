@@ -49,6 +49,12 @@ plugins:
       - MUSIC
       - WEB
       - TV
+    # The section below fixes the "Sign in" and "Bot" errors
+    ratelimit:
+      strategy: "rotate-on-ban"
+      ipBlocks: ["2603:c024:8008:400::/64"]
+      searchTriggersFail: true
+      retryLimit: 10
     clientOptions:
       TV:
         searching: false
