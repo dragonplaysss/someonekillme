@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import importlib.util
+import logging
 import os
 import re
 import shutil
@@ -28,6 +29,7 @@ YOUTUBE_BLOCKED_PATTERNS = (
     "confirm you are not a bot",
 )
 DEFAULT_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "soundcloud").lower()
+LOG = logging.getLogger("shorekeeper.music.legacy")
 
 
 class QuietYtdlpLogger:
@@ -63,6 +65,7 @@ def make_ytdl():
     if cookies_file:
         options["cookiefile"] = os.path.abspath(os.path.expanduser(cookies_file))
 
+    LOG.info("YTDLP FINAL OPTIONS: %s", options)
     return yt_dlp.YoutubeDL(options)
 
 

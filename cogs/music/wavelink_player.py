@@ -342,7 +342,9 @@ def extract_ytdlp_info_once(query: str, profile: str, search_prefix: str | None 
         identifier = f"{search_prefix or 'ytsearch1'}:{query}"
 
     LOG.info("[YTDLP] extracting via profile=%s identifier=%s", profile, identifier)
-    with yt_dlp.YoutubeDL(ytdlp_options(profile)) as ytdl:
+    options = ytdlp_options(profile)
+    LOG.info("YTDLP FINAL OPTIONS: %s", options)
+    with yt_dlp.YoutubeDL(options) as ytdl:
         data = ytdl.extract_info(identifier, download=False)
 
     entries = data.get("entries") if isinstance(data, dict) else None
