@@ -255,10 +255,21 @@ class WavelinkMusic(commands.Cog):
             return list(results)[:5]
 
         sources = [source_for_provider()]
-        if MUSIC_SEARCH_PROVIDER in {"youtube", "yt", "ytmusic", "youtube_music", "youtube-music"}:
-            sources.append(wavelink.TrackSource.SoundCloud)
-        elif MUSIC_SEARCH_PROVIDER in {"soundcloud", "sc"}:
-            sources.append(wavelink.TrackSource.YouTubeMusic)
+        async def search_tracks(self, query):
+            if query.startswith(("http://", "https://")):
+                return await wavelink.Playable.search(query)
+
+            # We use a raw string prefix. This forces Lavalink to handle the 
+            # search using the clients defined in your application.yml (TV client).
+            try:
+                # Use ytsearch: to bypass the local Wavelink 'TrackSource' logic
+                results = await wavelink.Playable.search(f"ytsearch:{query}")
+                if not results:
+                    results = await wavelink.Playable.search(f"scsearch:{query}")
+                return list(results)[:8]
+            except Exception:
+                # Fallback to SoundCloud if YouTube is totally blocked
+                return await wavelink.Playable.search(f"scsearch:{query}")
 
         tracks = []
         seen = set()
