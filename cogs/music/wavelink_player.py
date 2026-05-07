@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import logging
 import os
 from pathlib import Path
 import re
+import shutil
 
 import discord
 from discord.ext import commands
@@ -27,6 +29,12 @@ LAVALINK_URI = os.getenv("LAVALINK_URI", "http://127.0.0.1:2333")
 LAVALINK_PASSWORD = os.getenv("LAVALINK_PASSWORD", "youshallnotpass")
 MUSIC_SEARCH_PROVIDER = os.getenv("MUSIC_SEARCH_PROVIDER", "soundcloud").lower()
 YTDLP_COOKIES_FILE = os.getenv("YTDLP_COOKIES_FILE")
+YTDLP_SOURCE_ADDRESS = os.getenv("YTDLP_SOURCE_ADDRESS", "0.0.0.0")
+YTDLP_TIMEOUT = int(os.getenv("YTDLP_TIMEOUT", "35"))
+YTDLP_EXECUTABLE = os.getenv("YTDLP_EXECUTABLE", "yt-dlp")
+MAX_TRACK_RECOVERY_ATTEMPTS = int(os.getenv("MUSIC_MAX_RECOVERY_ATTEMPTS", "5"))
+MAX_NODE_CONNECT_ATTEMPTS = int(os.getenv("MUSIC_NODE_CONNECT_ATTEMPTS", "3"))
+LOG = logging.getLogger("shorekeeper.music")
 
 URL_RE = re.compile(r"https?://", re.IGNORECASE)
 YOUTUBE_URL_RE = re.compile(
@@ -36,11 +44,18 @@ YOUTUBE_URL_RE = re.compile(
 track_metadata: dict[str, dict] = {}
 
 
+logging.basicConfig(
+    level=os.getenv("MUSIC_LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
+
 @dataclass(frozen=True)
 class SearchAttempt:
     label: str
     source: object | None
     kind: str
+    prefix: str | None = None
 
 
 class QuietYtdlpLogger:
@@ -51,7 +66,7 @@ class QuietYtdlpLogger:
         pass
 
     def error(self, message):
-        pass
+        LOG.debug("[yt-dlp] %s", message)
 
 
 def is_url(query: str) -> bool:
@@ -128,6 +143,7 @@ def ytdlp_cookie_status() -> str:
         return f"[YTDLP] cookies configured but empty: {path}"
 
     youtube_lines = 0
+    auth_cookies = 0
     header_ok = False
 
     try:
@@ -140,32 +156,61 @@ def ytdlp_cookie_status() -> str:
                     header_ok = True
                 if "youtube.com" in line or "youtu.be" in line:
                     youtube_lines += 1
+                    if any(name in line for name in ("\tSAPISID\t", "\tHSID\t", "\tSID\t", "\tLOGIN_INFO\t")):
+                        auth_cookies += 1
     except OSError as exc:
         return f"[YTDLP] cookies configured but unreadable: {path} ({exc})"
 
     if not header_ok:
         return f"[YTDLP] cookies file found but header is not Netscape format: {path}"
 
+    if youtube_lines == 0:
+        return f"[YTDLP] cookies file has no YouTube cookies: {path}"
+
+    if auth_cookies == 0:
+        return (
+            f"[YTDLP] cookies file loads but has no obvious YouTube auth cookies: {path}. "
+            "Age/bot-gated videos may still fail."
+        )
+
     return (
         f"[YTDLP] cookies loaded for fallback: {path} "
-        f"({youtube_lines} YouTube cookie lines, {path.stat().st_size} bytes)"
+        f"({youtube_lines} YouTube cookie lines, {auth_cookies} auth-looking cookies, "
+        f"{path.stat().st_size} bytes)"
     )
 
 
-def ytdlp_options():
+def ytdlp_options(profile: str = "web"):
+    clients = {
+        "web": ["web", "mweb"],
+        "tv": ["tv", "web"],
+        "ios": ["ios", "web"],
+        "android": ["android", "web"],
+    }.get(profile, ["web", "mweb"])
+
     options = {
-        "format": "bestaudio[acodec=opus]/bestaudio/best",
+        "format": (
+            "bestaudio[acodec=opus][protocol^=http]/"
+            "bestaudio[ext=m4a][protocol^=http]/"
+            "bestaudio[protocol^=http]/bestaudio/best"
+        ),
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
-        "socket_timeout": 15,
-        "retries": 2,
-        "extractor_retries": 2,
-        "source_address": os.getenv("YTDLP_SOURCE_ADDRESS", "0.0.0.0"),
+        "socket_timeout": 20,
+        "retries": 5,
+        "fragment_retries": 5,
+        "extractor_retries": 4,
+        "file_access_retries": 3,
+        "source_address": YTDLP_SOURCE_ADDRESS,
+        "cachedir": False,
+        "geo_bypass": True,
+        "http_chunk_size": 10485760,
+        "remote_components": ["ejs:github"],
         "logger": QuietYtdlpLogger(),
         "extractor_args": {
             "youtube": {
-                "player_client": ["web", "mweb"],
+                "player_client": clients,
             }
         },
     }
@@ -176,13 +221,46 @@ def ytdlp_options():
     return options
 
 
-def extract_ytdlp_info(query: str):
+def select_stream_url(data: dict) -> str | None:
+    stream_url = data.get("url")
+    if stream_url:
+        return stream_url
+
+    formats = data.get("formats") or []
+    playable_formats = [
+        item
+        for item in formats
+        if item.get("url")
+        and item.get("acodec") not in {None, "none"}
+        and item.get("protocol") not in {"mhtml"}
+    ]
+    if not playable_formats:
+        return None
+
+    def score(item):
+        protocol = item.get("protocol") or ""
+        ext = item.get("ext") or ""
+        abr = item.get("abr") or 0
+        return (
+            3 if protocol.startswith("https") else 2 if protocol.startswith("http") else 1,
+            2 if ext in {"webm", "m4a", "mp4"} else 1,
+            abr,
+        )
+
+    return sorted(playable_formats, key=score)[-1]["url"]
+
+
+def extract_ytdlp_info_once(query: str, profile: str, search_prefix: str | None = None):
     if yt_dlp is None:
         raise RuntimeError("yt-dlp is not installed.")
 
-    identifier = query if is_url(query) else f"ytsearch1:{query}"
+    if is_url(query):
+        identifier = query
+    else:
+        identifier = f"{search_prefix or 'ytsearch1'}:{query}"
 
-    with yt_dlp.YoutubeDL(ytdlp_options()) as ytdl:
+    LOG.info("[YTDLP] extracting via profile=%s identifier=%s", profile, identifier)
+    with yt_dlp.YoutubeDL(ytdlp_options(profile)) as ytdl:
         data = ytdl.extract_info(identifier, download=False)
 
     entries = data.get("entries") if isinstance(data, dict) else None
@@ -192,16 +270,7 @@ def extract_ytdlp_info(query: str):
     if not data:
         raise ValueError("yt-dlp found no playable result.")
 
-    stream_url = data.get("url")
-    if not stream_url:
-        formats = data.get("formats") or []
-        playable_formats = [
-            item
-            for item in formats
-            if item.get("url") and item.get("acodec") not in {None, "none"}
-        ]
-        if playable_formats:
-            stream_url = playable_formats[-1]["url"]
+    stream_url = select_stream_url(data)
 
     if not stream_url:
         raise ValueError("yt-dlp did not return a direct audio stream.")
@@ -213,7 +282,30 @@ def extract_ytdlp_info(query: str):
         "duration_ms": int(duration * 1000),
         "artwork": data.get("thumbnail"),
         "webpage_url": data.get("webpage_url") or data.get("original_url"),
+        "profile": profile,
     }
+
+
+def extract_ytdlp_info(query: str):
+    errors = []
+    profiles = ("web", "tv", "ios", "android")
+    search_prefixes = (None, "ytsearch1") if is_url(query) else ("ytsearch1", "ytmsearch1")
+
+    for search_prefix in search_prefixes:
+        for profile in profiles:
+            try:
+                return extract_ytdlp_info_once(query, profile, search_prefix)
+            except Exception as exc:
+                errors.append(f"{profile}/{search_prefix or 'direct'}: {type(exc).__name__}: {exc}")
+                LOG.warning(
+                    "[YTDLP] extraction failed profile=%s prefix=%s error=%s: %s",
+                    profile,
+                    search_prefix or "direct",
+                    type(exc).__name__,
+                    readable_error(exc),
+                )
+
+    raise ValueError("yt-dlp exhausted all extraction profiles: " + "; ".join(errors[-4:]))
 
 
 class WavelinkMusicControls(discord.ui.View):
@@ -296,15 +388,74 @@ class WavelinkMusic(commands.Cog):
         self.bot = bot
         self.node_ready = False
         self._node_lock = asyncio.Lock()
+        self._watchdog_task = None
 
     async def cog_load(self):
-        print(
-            "[MUSIC] Backend=wavelink; search order=SoundCloud, YouTube Music, "
-            f"YouTube; configured provider={MUSIC_SEARCH_PROVIDER}; "
-            "yt-dlp rescue=enabled"
+        LOG.info(
+            "[MUSIC] Backend=wavelink; search order=SoundCloud, Spotify/LavaSrc, "
+            "Apple Music/LavaSrc, Deezer/LavaSrc, yt-dlp rescue; "
+            f"configured provider={MUSIC_SEARCH_PROVIDER}"
         )
-        print(ytdlp_cookie_status())
+        LOG.info(ytdlp_cookie_status())
+        self.log_startup_validation()
         await self.connect_lavalink(silent=True)
+        self._watchdog_task = asyncio.create_task(self.node_watchdog())
+
+    async def cog_unload(self):
+        if self._watchdog_task:
+            self._watchdog_task.cancel()
+
+    def log_startup_validation(self):
+        if YTDLP_SOURCE_ADDRESS != "0.0.0.0":
+            LOG.warning("[NETWORK] YTDLP_SOURCE_ADDRESS=%s; use 0.0.0.0 to force IPv4.", YTDLP_SOURCE_ADDRESS)
+        else:
+            LOG.info("[NETWORK] yt-dlp source_address=0.0.0.0 (IPv4 forced)")
+
+        if yt_dlp is None:
+            LOG.error("[YTDLP] Python package missing; install requirements.txt")
+        else:
+            LOG.info("[YTDLP] Python package available")
+
+        if shutil.which(YTDLP_EXECUTABLE):
+            LOG.info("[YTDLP] executable available: %s", YTDLP_EXECUTABLE)
+        else:
+            LOG.warning("[YTDLP] executable not found on PATH: %s; LavaSrc ytdlp source needs it.", YTDLP_EXECUTABLE)
+
+        if shutil.which("deno"):
+            LOG.info("[YTDLP] Deno JavaScript runtime available for YouTube EJS challenges")
+        else:
+            LOG.warning("[YTDLP] Deno not found; install Deno for reliable YouTube signature/n challenge solving.")
+
+        try:
+            import yt_dlp_ejs  # noqa: F401
+            LOG.info("[YTDLP] yt-dlp-ejs package available")
+        except Exception:
+            LOG.warning("[YTDLP] yt-dlp-ejs package not available; remote EJS components will be used when needed.")
+
+        if shutil.which("ffmpeg"):
+            LOG.info("[FFMPEG] executable available")
+        else:
+            LOG.warning("[FFMPEG] executable not found; install ffmpeg on the VPS.")
+
+    async def node_watchdog(self):
+        await self.bot.wait_until_ready()
+        while not self.bot.is_closed():
+            try:
+                await asyncio.sleep(30)
+                if not self.node_ready:
+                    await self.connect_lavalink(silent=True)
+                    continue
+                try:
+                    node = wavelink.Pool.get_node()
+                    LOG.debug("[WAVELINK] node healthy: %s", node.identifier)
+                except Exception as exc:
+                    self.node_ready = False
+                    LOG.warning("[WAVELINK] node watchdog marked node unhealthy: %s", readable_error(exc))
+                    await self.connect_lavalink(silent=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                LOG.warning("[WAVELINK] node watchdog error: %s", readable_error(exc))
 
     async def connect_lavalink(self, silent=False):
         if wavelink is None:
@@ -318,25 +469,43 @@ class WavelinkMusic(commands.Cog):
             except Exception:
                 pass
 
-            try:
-                node = wavelink.Node(
-                    identifier="shorekeeper",
-                    uri=LAVALINK_URI,
-                    password=LAVALINK_PASSWORD,
-                )
-                await wavelink.Pool.connect(nodes=[node], client=self.bot)
-                self.node_ready = True
-                return True
-            except Exception as exc:
-                self.node_ready = False
-                if not silent:
-                    print(f"[WAVELINK NODE ERROR] {type(exc).__name__}: {exc}")
-                return False
+            last_error = None
+            for attempt in range(1, MAX_NODE_CONNECT_ATTEMPTS + 1):
+                try:
+                    LOG.info("[WAVELINK] connecting to Lavalink attempt=%s uri=%s", attempt, LAVALINK_URI)
+                    node = wavelink.Node(
+                        identifier="shorekeeper",
+                        uri=LAVALINK_URI,
+                        password=LAVALINK_PASSWORD,
+                    )
+                    await wavelink.Pool.connect(nodes=[node], client=self.bot)
+                    self.node_ready = True
+                    LOG.info("[WAVELINK] Lavalink connection established")
+                    return True
+                except Exception as exc:
+                    last_error = exc
+                    self.node_ready = False
+                    LOG.warning("[WAVELINK NODE ERROR] attempt=%s %s: %s", attempt, type(exc).__name__, exc)
+                    await asyncio.sleep(min(2 * attempt, 8))
+
+            if not silent:
+                LOG.error("[WAVELINK NODE ERROR] exhausted retries: %s", readable_error(last_error))
+            return False
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, payload):
         self.node_ready = True
-        print(f"[WAVELINK] Node ready: {payload.node.identifier}")
+        LOG.info("[WAVELINK] Node ready: %s", payload.node.identifier)
+
+    @commands.Cog.listener()
+    async def on_wavelink_node_closed(self, payload):
+        self.node_ready = False
+        LOG.warning("[WAVELINK] Node closed: %s", payload)
+
+    @commands.Cog.listener()
+    async def on_wavelink_node_disconnected(self, payload):
+        self.node_ready = False
+        LOG.warning("[WAVELINK] Node disconnected: %s", payload)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload):
@@ -374,10 +543,7 @@ class WavelinkMusic(commands.Cog):
             return
 
         exception = getattr(payload, "exception", None)
-        print(
-            "[WAVELINK PLAYBACK ERROR] "
-            f"{track_title(payload.track)}: {readable_error(exception)}"
-        )
+        LOG.warning("[WAVELINK PLAYBACK ERROR] %s: %s", track_title(payload.track), readable_error(exception))
         await self.recover_from_failure(player, payload.track, exception)
 
     def get_author_voice_channel(self, message):
@@ -413,16 +579,25 @@ class WavelinkMusic(commands.Cog):
             self.prepare_player(player, message.channel.id)
             return player
 
-        try:
-            player = await voice_channel.connect(cls=wavelink.Player, self_deaf=True)
-            self.prepare_player(player, message.channel.id)
-            return player
-        except Exception as exc:
-            print(f"[WAVELINK VOICE ERROR] {type(exc).__name__}: {exc}")
-            await message.channel.send(
-                f"Voice connect failed: {type(exc).__name__}: {exc}"
-            )
-            return None
+        last_error = None
+        for attempt in range(1, 4):
+            try:
+                LOG.info("[VOICE] connecting guild=%s channel=%s attempt=%s", message.guild.id, voice_channel.id, attempt)
+                player = await asyncio.wait_for(
+                    voice_channel.connect(cls=wavelink.Player, self_deaf=True),
+                    timeout=20,
+                )
+                self.prepare_player(player, message.channel.id)
+                return player
+            except Exception as exc:
+                last_error = exc
+                LOG.warning("[WAVELINK VOICE ERROR] attempt=%s %s: %s", attempt, type(exc).__name__, exc)
+                await asyncio.sleep(min(2 * attempt, 6))
+
+        await message.channel.send(
+            f"Voice connect failed after retries: {type(last_error).__name__}: {last_error}"
+        )
+        return None
 
     def prepare_player(self, player, text_channel_id):
         player.shorekeeper_text_channel_id = text_channel_id
@@ -440,11 +615,13 @@ class WavelinkMusic(commands.Cog):
 
         return [
             SearchAttempt("SoundCloud", wavelink.TrackSource.SoundCloud, "soundcloud"),
-            SearchAttempt("YouTube Music", wavelink.TrackSource.YouTubeMusic, "youtube"),
-            SearchAttempt("YouTube", wavelink.TrackSource.YouTube, "youtube"),
+            SearchAttempt("Spotify/LavaSrc", "spsearch", "spotify", "spsearch"),
+            SearchAttempt("Apple Music/LavaSrc", "amsearch", "applemusic", "amsearch"),
+            SearchAttempt("Deezer/LavaSrc", "dzsearch", "deezer", "dzsearch"),
         ]
 
     async def search_one(self, query: str, attempt: SearchAttempt):
+        LOG.info("[MUSIC RESOLVE] source=%s query=%s", attempt.label, query)
         results = await wavelink.Playable.search(query, source=attempt.source)
         tracks = list(results)
 
@@ -458,7 +635,11 @@ class WavelinkMusic(commands.Cog):
     async def search_tracks(self, query, requester, status_message=None):
         errors = []
 
-        for attempt in self.search_attempts(query):
+        attempts = self.search_attempts(query)
+        if is_youtube_url(query):
+            attempts = []
+
+        for attempt in attempts:
             if status_message:
                 await status_message.edit(
                     content=f"Searching {attempt.label}: **{query}**"
@@ -468,7 +649,7 @@ class WavelinkMusic(commands.Cog):
                 track = await self.search_one(query, attempt)
             except Exception as exc:
                 errors.append(f"{attempt.label}: {type(exc).__name__}: {exc}")
-                print(
+                LOG.warning(
                     f"[WAVELINK SEARCH ERROR] {attempt.label}: "
                     f"{type(exc).__name__}: {exc}"
                 )
@@ -489,44 +670,48 @@ class WavelinkMusic(commands.Cog):
             return track
 
         try:
+            if status_message:
+                await status_message.edit(content=f"Searching yt-dlp rescue: **{query}**")
             return await self.resolve_ytdlp_track(
                 query,
                 requester_id=requester.id,
                 requester=requester.mention,
-                fallback_attempts=("soundcloud", "youtube", "yt-dlp"),
+                fallback_attempts=tuple(a.kind for a in attempts),
             )
         except Exception as exc:
             errors.append(f"yt-dlp: {type(exc).__name__}: {exc}")
-            print(f"[YTDLP RESCUE ERROR] {type(exc).__name__}: {exc}")
+            LOG.warning("[YTDLP RESCUE ERROR] %s: %s", type(exc).__name__, exc)
 
         detail = "; ".join(errors[-3:])
         if detail:
             raise ValueError(f"No playable results found. Last errors: {detail}")
         raise ValueError("No playable results found.")
 
-    async def search_youtube_fallback(self, query, base_metadata):
+    async def search_lavasrc_fallback(self, query, base_metadata):
         errors = []
         attempts = (
-            SearchAttempt("YouTube Music", wavelink.TrackSource.YouTubeMusic, "youtube"),
-            SearchAttempt("YouTube", wavelink.TrackSource.YouTube, "youtube"),
+            SearchAttempt("Spotify/LavaSrc", "spsearch", "spotify", "spsearch"),
+            SearchAttempt("Apple Music/LavaSrc", "amsearch", "applemusic", "amsearch"),
+            SearchAttempt("Deezer/LavaSrc", "dzsearch", "deezer", "dzsearch"),
+            SearchAttempt("SoundCloud", wavelink.TrackSource.SoundCloud, "soundcloud"),
         )
 
         for attempt in attempts:
+            if attempt.kind in set(base_metadata.get("fallback_attempts", ())):
+                continue
+
             try:
                 track = await self.search_one(query, attempt)
             except Exception as exc:
                 errors.append(f"{attempt.label}: {type(exc).__name__}: {exc}")
-                print(
-                    f"[WAVELINK FALLBACK SEARCH ERROR] {attempt.label}: "
-                    f"{type(exc).__name__}: {exc}"
-                )
+                LOG.warning("[WAVELINK FALLBACK SEARCH ERROR] %s: %s: %s", attempt.label, type(exc).__name__, exc)
                 continue
 
             if not track:
                 continue
 
             attempted = tuple(
-                dict.fromkeys((*base_metadata.get("fallback_attempts", ()), "youtube"))
+                dict.fromkeys((*base_metadata.get("fallback_attempts", ()), attempt.kind))
             )
             save_track_metadata(
                 track,
@@ -534,14 +719,14 @@ class WavelinkMusic(commands.Cog):
                 requester=base_metadata.get("requester"),
                 guild_id=base_metadata.get("guild_id"),
                 original_query=query,
-                source_kind="youtube",
+                source_kind=attempt.kind,
                 source_label=attempt.label,
                 fallback_attempts=attempted,
             )
             return track
 
         detail = "; ".join(errors[-2:])
-        raise ValueError(detail or "YouTube fallback returned no results.")
+        raise ValueError(detail or "LavaSrc/SoundCloud fallback returned no results.")
 
     async def resolve_ytdlp_track(
         self,
@@ -553,7 +738,16 @@ class WavelinkMusic(commands.Cog):
         fallback_attempts=(),
     ):
         loop = asyncio.get_running_loop()
-        info = await loop.run_in_executor(None, lambda: extract_ytdlp_info(query))
+        info = await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: extract_ytdlp_info(query)),
+            timeout=YTDLP_TIMEOUT,
+        )
+        LOG.info(
+            "[YTDLP] resolved direct stream profile=%s title=%s webpage=%s",
+            info.get("profile"),
+            info.get("title"),
+            info.get("webpage_url"),
+        )
         results = await wavelink.Playable.search(info["stream_url"], source=None)
         tracks = list(results)
 
@@ -568,7 +762,7 @@ class WavelinkMusic(commands.Cog):
             guild_id=guild_id,
             original_query=query,
             source_kind="yt-dlp",
-            source_label="yt-dlp direct stream",
+            source_label=f"yt-dlp direct stream ({info.get('profile')})",
             fallback_attempts=tuple(dict.fromkeys((*fallback_attempts, "yt-dlp"))),
             title=info["title"],
             duration_ms=info["duration_ms"],
@@ -585,24 +779,26 @@ class WavelinkMusic(commands.Cog):
 
         attempted = set(metadata.get("fallback_attempts", ()))
         source_kind = metadata.get("source_kind")
+        metadata["guild_id"] = metadata.get("guild_id") or player.guild.id
 
-        if source_kind == "soundcloud" and "youtube" not in attempted:
-            attempted.add("youtube")
+        if source_kind in {"soundcloud", "spotify", "applemusic", "deezer", "direct"}:
             metadata["fallback_attempts"] = tuple(attempted)
             await self.send_or_edit_status(
                 player,
-                "SoundCloud playback failed. Trying YouTube fallback...",
+                "Playback source failed. Trying alternate LavaSrc/SoundCloud mirror...",
             )
             try:
-                return await self.search_youtube_fallback(query, metadata)
+                fallback = await self.search_lavasrc_fallback(query, metadata)
+                if fallback:
+                    return fallback
             except Exception as exc:
-                print(f"[YOUTUBE FALLBACK ERROR] {type(exc).__name__}: {exc}")
+                LOG.warning("[LAVASRC FALLBACK ERROR] %s: %s", type(exc).__name__, exc)
 
         if "yt-dlp" not in attempted and yt_dlp is not None:
             attempted.add("yt-dlp")
             await self.send_or_edit_status(
                 player,
-                "Lavalink playback failed. Trying yt-dlp direct stream...",
+                "Trying yt-dlp direct stream regeneration...",
             )
             try:
                 return await self.resolve_ytdlp_track(
@@ -613,14 +809,15 @@ class WavelinkMusic(commands.Cog):
                     fallback_attempts=tuple(attempted),
                 )
             except Exception as exc:
-                print(f"[YTDLP FALLBACK ERROR] {type(exc).__name__}: {exc}")
+                LOG.warning("[YTDLP FALLBACK ERROR] %s: %s", type(exc).__name__, exc)
 
         if yt_dlp is None:
-            print("[YTDLP FALLBACK ERROR] yt-dlp is not installed.")
+            LOG.error("[YTDLP FALLBACK ERROR] yt-dlp is not installed.")
 
         return None
 
     async def play_raw(self, player, track):
+        LOG.info("[PLAYBACK] starting source=%s title=%s", get_track_metadata(track).get("source_label"), track_title(track))
         await player.play(
             track,
             volume=getattr(player, "shorekeeper_volume", 50),
@@ -630,7 +827,13 @@ class WavelinkMusic(commands.Cog):
     async def recover_from_failure(self, player, failed_track, reason):
         current = failed_track
 
-        for _ in range(3):
+        for attempt in range(1, MAX_TRACK_RECOVERY_ATTEMPTS + 1):
+            LOG.warning(
+                "[PLAYBACK RECOVERY] attempt=%s failed_track=%s reason=%s",
+                attempt,
+                track_title(current),
+                readable_error(reason),
+            )
             fallback = await self.build_next_fallback(player, current, reason)
             if not fallback:
                 break
@@ -639,7 +842,7 @@ class WavelinkMusic(commands.Cog):
                 await self.play_raw(player, fallback)
                 return True
             except Exception as exc:
-                print(
+                LOG.warning(
                     f"[WAVELINK FALLBACK PLAY ERROR] {track_title(fallback)}: "
                     f"{type(exc).__name__}: {exc}"
                 )
@@ -668,6 +871,7 @@ class WavelinkMusic(commands.Cog):
 
         if player.queue:
             next_track = player.queue.get()
+            LOG.info("[QUEUE] loading next queued track: %s", track_title(next_track))
             await self.send_or_edit_status(
                 player,
                 f"Loading next queued track: **{track_title(next_track)}**",
@@ -761,7 +965,10 @@ class WavelinkMusic(commands.Cog):
         import aiohttp
 
         async with aiohttp.ClientSession() as session:
-            await session.patch(f"{webhook}/messages/{msg_id}", json=data)
+            try:
+                await session.patch(f"{webhook}/messages/{msg_id}", json=data)
+            except Exception as exc:
+                LOG.debug("[PANEL] update failed: %s", readable_error(exc))
 
     async def announce_now_playing(self, player, track):
         channel_id = getattr(player, "shorekeeper_text_channel_id", None)
@@ -811,7 +1018,7 @@ class WavelinkMusic(commands.Cog):
         try:
             track = await self.search_tracks(query, message.author, status_message)
         except Exception as exc:
-            print(f"[MUSIC SEARCH FAILED] {type(exc).__name__}: {exc}")
+            LOG.warning("[MUSIC SEARCH FAILED] %s: %s", type(exc).__name__, exc)
             return await status_message.edit(
                 content=f"Search failed: {type(exc).__name__}: {readable_error(exc)}"
             )
@@ -967,7 +1174,7 @@ class WavelinkMusic(commands.Cog):
             if keyword == "volume":
                 return await self.command_volume(message, query)
         except Exception as exc:
-            print(f"[WAVELINK COMMAND ERROR] {type(exc).__name__}: {exc}")
+            LOG.exception("[WAVELINK COMMAND ERROR] %s: %s", type(exc).__name__, exc)
             await message.channel.send(
                 f"Music command failed: {type(exc).__name__}: {exc}"
             )
@@ -975,7 +1182,7 @@ class WavelinkMusic(commands.Cog):
 
 async def setup(bot):
     if os.getenv("MUSIC_BACKEND", "wavelink").lower() != "wavelink":
-        print("[SKIPPED] cogs.music.wavelink_player: MUSIC_BACKEND is not wavelink")
+        LOG.info("[SKIPPED] cogs.music.wavelink_player: MUSIC_BACKEND is not wavelink")
         return
 
     if wavelink is None:
