@@ -122,6 +122,60 @@ def track_duration(track):
     return format_duration(metadata.get("duration_ms") or getattr(track, "length", 0))
 
 
+def track_uri(track) -> str:
+    return (
+        getattr(track, "uri", None)
+        or getattr(getattr(track, "info", None), "uri", None)
+        or ""
+    )
+
+
+def track_identifier(track) -> str:
+    return (
+        getattr(track, "identifier", None)
+        or getattr(getattr(track, "info", None), "identifier", None)
+        or ""
+    )
+
+
+def is_soundcloud_preview(track) -> bool:
+    if getattr(track, "is_preview", False):
+        return True
+
+    text = f"{track_uri(track)} {track_identifier(track)}".lower()
+    return "/preview/" in text or "preview/hls" in text
+
+
+def is_soundcloud_track(track) -> bool:
+    metadata = get_track_metadata(track)
+    source = (
+        metadata.get("source_kind")
+        or metadata.get("source_label")
+        or getattr(track, "source", None)
+        or getattr(track, "source_name", None)
+        or getattr(getattr(track, "info", None), "source_name", None)
+        or ""
+    )
+    return "soundcloud" in str(source).lower()
+
+
+def should_recover_early_end(player, track, reason: str) -> bool:
+    if not track or not is_soundcloud_track(track):
+        return False
+
+    if reason not in {"finished", "stopped"}:
+        return False
+
+    length = get_track_metadata(track).get("duration_ms") or getattr(track, "length", 0) or 0
+    position = getattr(player, "position", 0) or 0
+
+    if not length or length < 90_000:
+        return False
+
+    remaining = length - position
+    return position < (length * 0.75) and remaining > 45_000
+
+
 def queue_size(player) -> int:
     queue = getattr(player, "queue", None)
     if queue is None:
@@ -567,6 +621,21 @@ class WavelinkMusic(commands.Cog):
             LOG.debug("[TRACK END] ignored because skip_player is already advancing")
             return
 
+        if should_recover_early_end(player, payload.track, reason):
+            LOG.warning(
+                "[SOUNDCLOUD RECOVERY] early end detected title=%s position=%s length=%s reason=%s",
+                track_title(payload.track),
+                getattr(player, "position", None),
+                getattr(payload.track, "length", None),
+                reason,
+            )
+            await self.recover_from_failure(
+                player,
+                payload.track,
+                RuntimeError(f"SoundCloud ended early with reason={reason}"),
+            )
+            return
+
         if getattr(player, "shorekeeper_loop", False) and payload.track:
             await self.play_raw(player, payload.track)
             return
@@ -592,6 +661,27 @@ class WavelinkMusic(commands.Cog):
         exception = getattr(payload, "exception", None)
         LOG.warning("[WAVELINK PLAYBACK ERROR] %s: %s", track_title(payload.track), readable_error(exception))
         await self.recover_from_failure(player, payload.track, exception)
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_stuck(self, payload):
+        player = payload.player
+        if not player:
+            return
+
+        threshold = getattr(payload, "threshold", None) or getattr(payload, "threshold_ms", None)
+        LOG.warning(
+            "[WAVELINK TRACK STUCK] title=%s source=%s position=%s threshold=%s queue_size=%s",
+            track_title(payload.track),
+            get_track_metadata(payload.track).get("source_label"),
+            getattr(player, "position", None),
+            threshold,
+            queue_size(player),
+        )
+        await self.recover_from_failure(
+            player,
+            payload.track,
+            RuntimeError(f"Track stuck at {getattr(player, 'position', None)}ms"),
+        )
 
     def get_author_voice_channel(self, message):
         if not message.author.voice or not message.author.voice.channel:
@@ -679,7 +769,13 @@ class WavelinkMusic(commands.Cog):
         tracks = list(results)
 
         for track in tracks:
-            if getattr(track, "is_preview", False):
+            if is_soundcloud_preview(track):
+                LOG.info(
+                    "[MUSIC RESOLVE] rejected SoundCloud preview result title=%s uri=%s identifier=%s",
+                    track_title(track),
+                    track_uri(track),
+                    track_identifier(track),
+                )
                 continue
             return track
 
@@ -833,8 +929,17 @@ class WavelinkMusic(commands.Cog):
         attempted = set(metadata.get("fallback_attempts", ()))
         source_kind = metadata.get("source_kind")
         metadata["guild_id"] = metadata.get("guild_id") or player.guild.id
+        LOG.info(
+            "[FALLBACK] failed_source=%s failed_title=%s attempted=%s reason=%s",
+            source_kind,
+            track_title(failed_track),
+            sorted(attempted),
+            readable_error(reason),
+        )
 
         if source_kind in {"soundcloud", "spotify", "applemusic", "deezer", "direct"}:
+            if source_kind:
+                attempted.add(source_kind)
             metadata["fallback_attempts"] = tuple(attempted)
             await self.send_or_edit_status(
                 player,
