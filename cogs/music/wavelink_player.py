@@ -122,6 +122,34 @@ def track_duration(track):
     return format_duration(metadata.get("duration_ms") or getattr(track, "length", 0))
 
 
+def queue_size(player) -> int:
+    queue = getattr(player, "queue", None)
+    if queue is None:
+        return 0
+
+    try:
+        return len(queue)
+    except Exception:
+        return 0
+
+
+def queue_empty(player) -> bool:
+    queue = getattr(player, "queue", None)
+    if queue is None:
+        return True
+
+    is_empty = getattr(queue, "is_empty", None)
+    if callable(is_empty):
+        try:
+            return bool(is_empty())
+        except Exception:
+            pass
+    if isinstance(is_empty, bool):
+        return is_empty
+
+    return queue_size(player) == 0
+
+
 def readable_error(error) -> str:
     text = re.sub(r"\x1b\[[0-9;]*m", "", str(error)).strip()
     if len(text) > 350:
@@ -338,7 +366,13 @@ class WavelinkMusicControls(discord.ui.View):
         player = await self.can_control(interaction)
         if not player:
             return
-        await player.skip()
+
+        cog = self.bot.get_cog("WavelinkMusic")
+        if cog and hasattr(cog, "skip_player"):
+            await cog.skip_player(player, requested_by=interaction.user)
+        else:
+            await player.skip()
+
         await interaction.response.send_message("Skipped.")
 
     @discord.ui.button(label="Pause", style=discord.ButtonStyle.secondary)
@@ -514,10 +548,23 @@ class WavelinkMusic(commands.Cog):
             return
 
         reason = str(getattr(payload, "reason", "")).lower()
-        if reason in {"replaced", "stopped", "cleanup", "load_failed"}:
+        LOG.info(
+            "[TRACK END] reason=%s track=%s queue_size=%s stopping=%s manual_skip=%s",
+            reason or "unknown",
+            track_title(payload.track),
+            queue_size(player),
+            getattr(player, "shorekeeper_stopping", False),
+            getattr(player, "shorekeeper_manual_skip_active", False),
+        )
+
+        if reason in {"replaced", "cleanup", "load_failed"}:
             return
 
         if getattr(player, "shorekeeper_stopping", False):
+            return
+
+        if getattr(player, "shorekeeper_manual_skip_active", False):
+            LOG.debug("[TRACK END] ignored because skip_player is already advancing")
             return
 
         if getattr(player, "shorekeeper_loop", False) and payload.track:
@@ -604,6 +651,12 @@ class WavelinkMusic(commands.Cog):
         player.shorekeeper_loop = getattr(player, "shorekeeper_loop", False)
         player.shorekeeper_stopping = False
         player.shorekeeper_volume = getattr(player, "shorekeeper_volume", 50)
+        player.shorekeeper_manual_skip_active = getattr(
+            player, "shorekeeper_manual_skip_active", False
+        )
+
+        if not hasattr(player, "shorekeeper_transition_lock"):
+            player.shorekeeper_transition_lock = asyncio.Lock()
 
         if wavelink is not None:
             player.autoplay = wavelink.AutoPlayMode.disabled
@@ -824,6 +877,72 @@ class WavelinkMusic(commands.Cog):
             populate=False,
         )
 
+    async def skip_player(self, player, *, requested_by=None):
+        lock = getattr(player, "shorekeeper_transition_lock", None)
+        if lock is None:
+            lock = asyncio.Lock()
+            player.shorekeeper_transition_lock = lock
+
+        async with lock:
+            before_size = queue_size(player)
+            requester = getattr(requested_by, "id", requested_by)
+            failed_track = None
+            failed_error = None
+            LOG.info(
+                "[SKIP] requested_by=%s current=%s queue_size_before=%s playing=%s paused=%s",
+                requester,
+                track_title(getattr(player, "current", None)),
+                before_size,
+                getattr(player, "playing", None),
+                getattr(player, "paused", None),
+            )
+
+            if queue_empty(player):
+                player.shorekeeper_manual_skip_active = True
+                try:
+                    LOG.info("[SKIP] queue empty; stopping current track only")
+                    await player.skip()
+                finally:
+                    player.shorekeeper_manual_skip_active = False
+
+                await self.update_panel(player.guild.id)
+                LOG.info("[SKIP] queue_size_after=%s", queue_size(player))
+                return False
+
+            next_track = player.queue.get()
+            LOG.info(
+                "[SKIP] selected_next=%s queue_size_after_get=%s",
+                track_title(next_track),
+                queue_size(player),
+            )
+
+            player.shorekeeper_manual_skip_active = True
+            try:
+                await self.send_or_edit_status(
+                    player,
+                    f"Skipped. Loading next queued track: **{track_title(next_track)}**",
+                )
+                LOG.info("[SKIP] restarting playback with next queued track")
+                await self.play_raw(player, next_track)
+                LOG.info("[SKIP] playback restart requested successfully")
+                return True
+            except Exception as exc:
+                LOG.warning(
+                    "[SKIP] direct next playback failed for %s: %s: %s",
+                    track_title(next_track),
+                    type(exc).__name__,
+                    exc,
+                )
+                failed_track = next_track
+                failed_error = exc
+            finally:
+                player.shorekeeper_manual_skip_active = False
+                LOG.info("[SKIP] queue_size_after=%s", queue_size(player))
+
+        if failed_track is not None:
+            await self.recover_from_failure(player, failed_track, failed_error)
+            return False
+
     async def recover_from_failure(self, player, failed_track, reason):
         current = failed_track
 
@@ -867,11 +986,33 @@ class WavelinkMusic(commands.Cog):
 
     async def play_next_queued(self, player):
         if getattr(player, "shorekeeper_stopping", False):
+            LOG.debug("[QUEUE] not advancing because player is stopping")
             return False
 
-        if player.queue:
+        lock = getattr(player, "shorekeeper_transition_lock", None)
+        if lock is None:
+            lock = asyncio.Lock()
+            player.shorekeeper_transition_lock = lock
+
+        async with lock:
+            LOG.info(
+                "[QUEUE] advance requested queue_size=%s playing=%s paused=%s",
+                queue_size(player),
+                getattr(player, "playing", None),
+                getattr(player, "paused", None),
+            )
+
+            if queue_empty(player):
+                await self.update_panel(player.guild.id)
+                LOG.info("[QUEUE] advance aborted; queue empty")
+                return False
+
             next_track = player.queue.get()
-            LOG.info("[QUEUE] loading next queued track: %s", track_title(next_track))
+            LOG.info(
+                "[QUEUE] selected next track=%s queue_size_after_get=%s",
+                track_title(next_track),
+                queue_size(player),
+            )
             await self.send_or_edit_status(
                 player,
                 f"Loading next queued track: **{track_title(next_track)}**",
@@ -879,10 +1020,18 @@ class WavelinkMusic(commands.Cog):
             try:
                 await self.play_raw(player, next_track)
             except Exception as exc:
-                await self.recover_from_failure(player, next_track, exc)
-            return True
+                LOG.warning(
+                    "[QUEUE] play next failed for %s: %s: %s",
+                    track_title(next_track),
+                    type(exc).__name__,
+                    exc,
+                )
+                failed_track = next_track
+                failed_error = exc
+            else:
+                return True
 
-        await self.update_panel(player.guild.id)
+        await self.recover_from_failure(player, failed_track, failed_error)
         return False
 
     async def get_status_message(self, player):
@@ -1044,6 +1193,11 @@ class WavelinkMusic(commands.Cog):
                 await self.recover_from_failure(player, track, exc)
         else:
             player.queue.put(track)
+            LOG.info(
+                "[QUEUE] queued track=%s queue_size=%s",
+                track_title(track),
+                queue_size(player),
+            )
             await status_message.edit(content=f"Queued: **{track_title(track)}**")
             await self.update_panel(message.guild.id)
 
@@ -1056,7 +1210,7 @@ class WavelinkMusic(commands.Cog):
         if message.author.id != requester_id and not is_mod(message.author):
             return await message.channel.send("Only the requester or mods can skip.")
 
-        await player.skip()
+        await self.skip_player(player, requested_by=message.author)
         await message.channel.send("Skipped.")
 
     async def command_pause(self, message):
@@ -1097,7 +1251,7 @@ class WavelinkMusic(commands.Cog):
                 inline=False,
             )
 
-        if player.queue:
+        if not queue_empty(player):
             tracks = list(player.queue)[:10]
             embed.add_field(
                 name="Up Next",
@@ -1110,7 +1264,7 @@ class WavelinkMusic(commands.Cog):
         else:
             embed.add_field(name="Up Next", value="Queue is empty.", inline=False)
 
-        embed.set_footer(text=f"{len(player.queue)} songs queued")
+        embed.set_footer(text=f"{queue_size(player)} songs queued")
         await message.channel.send(embed=embed)
 
     async def command_nowplaying(self, message):
