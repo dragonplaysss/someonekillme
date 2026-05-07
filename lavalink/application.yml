@@ -48,18 +48,7 @@ plugins:
     clients:
       - MUSIC
       - WEB
-      - TV
     # The section below fixes the "Sign in" and "Bot" errors
-    ratelimit:
-      strategy: "rotate-on-ban"
-      ipBlocks: ["2603:c024:8008:400::/64"]
-      searchTriggersFail: true
-      retryLimit: 10
-    clientOptions:
-      TV:
-        searching: false
-        videoLoading: false
-        playlistLoading: false
     # youtube-plugin 1.18.1 does not support cookie/cookies file keys.
     # Cookies are only used by the bot's yt-dlp fallback via YTDLP_COOKIES_FILE.
 
@@ -78,4 +67,14 @@ logging:
   level:
     root: INFO
     lavalink: INFO
-    dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO
+
+plugins:
+  lavasrc:
+    providers:
+      - "ytsearch:%QUERY%"
+      - "ytmsearch:%QUERY%"
+    sources:
+      spotify: true
+      youtube: true
+      applemusic: true
+      deezer: true
