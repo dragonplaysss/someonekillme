@@ -657,7 +657,7 @@ class Music(commands.Cog):
 
 
 async def setup(bot):
-    if os.getenv("MUSIC_BACKEND", "ytdlp").lower() == "wavelink":
+    if os.getenv("MUSIC_BACKEND", "wavelink").lower() == "wavelink":
         print("[SKIPPED] cogs.music.player: MUSIC_BACKEND=wavelink")
         return
 

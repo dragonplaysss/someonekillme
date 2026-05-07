@@ -7,3 +7,6 @@ bot_stdout.log
 bot_stderr.log
 cookies.txt
 shorekeeper.lock
+lavalink/plugins/*.jar
+lavalink/*.log
+lavalink/logs/*.log

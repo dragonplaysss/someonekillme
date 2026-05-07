@@ -47,7 +47,19 @@ plugins:
     allowDirectPlaylistIds: true
     clients:
       - MUSIC
-      - ANDROID_VR
+      - WEB
+      - TV
+    clientOptions:
+      TV:
+        searching: false
+        videoLoading: false
+        playlistLoading: false
+    oauth:
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: "${YOUTUBE_OAUTH_REFRESH_TOKEN:}"
+      skipInitialization: ${YOUTUBE_OAUTH_SKIP_INITIALIZATION:false}
+    # youtube-plugin 1.18.1 does not support cookie/cookies file keys.
+    # Cookies are only used by the bot's yt-dlp fallback via YTDLP_COOKIES_FILE.
 
 metrics:
   prometheus:
@@ -64,3 +76,4 @@ logging:
   level:
     root: INFO
     lavalink: INFO
+    dev.lavalink.youtube.http.YoutubeOauth2Handler: INFO

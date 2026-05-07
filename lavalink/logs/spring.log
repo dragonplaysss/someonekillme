@@ -61,3 +61,9 @@ Update to ensure the YouTube source remains operational!
 2026-05-07T03:07:34.248+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.player.AudioLoaderRestHandler   : Loaded playlist Search results for: entha chitram kadha from dwaraka
 2026-05-07T03:07:34.275+05:30  INFO 34232 --- [Lavalink] [XNIO-1 task-3] l.server.io.RequestLoggingFilter         : GET /v4/loadtracks?identifier=ytsearch%3Aentha%20chitram%20kadha%20from%20dwaraka
 2026-05-07T03:08:27.870+05:30  INFO 34232 --- [Lavalink] [pool-2-thread-1] lavalink.server.io.SocketContext         : Shutting down 0 playing players.
+2026-05-07T14:38:21.896+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : Starting Launcher v4.2.2 using Java 21.0.9 with PID 32980 (C:\Users\sarat\Desktop\Shorekeeper revival\lavalink\Lavalink.jar started by sarat in C:\Users\sarat\Desktop\Shorekeeper revival\lavalink)
+2026-05-07T14:38:21.908+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : No active profile set, falling back to 1 default profile: "default"
+2026-05-07T14:38:23.038+05:30  INFO 32980 --- [Lavalink] [main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=3d6bf653-92ea-3fde-943a-10b9f8cd696e
+2026-05-07T14:38:23.681+05:30  INFO 32980 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Found plugin 'youtube-plugin' version '1.18.1'
+2026-05-07T14:38:25.213+05:30  INFO 32980 --- [Lavalink] [main] l.server.bootstrap.PluginManager         : Loaded 'youtube-plugin-1.18.1.jar' (17 classes)
+2026-05-07T14:38:25.682+05:30  INFO 32980 --- [Lavalink] [main] lavalink.server.Launcher                 : Started Launcher in 4.526 seconds (process running for 5.679)
