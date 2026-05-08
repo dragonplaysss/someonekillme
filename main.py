@@ -28,6 +28,7 @@ intents = discord.Intents.all()
 
 SKIP_FILES = {
     "__init__.py",
+    "mongo_client.py",
     "controls.py",
     "embeds.py",
     "queue.py",
