@@ -17,6 +17,8 @@ DEFAULT_GUILD = {
     "verify_staff_roles": [],
     "verified_roles": [],
     "ticket_ping_roles": [],
+    "welcome_gif_url": None,
+    "goodbye_gif_url": None,
     "unverified_role": None,
     "skip_role": None,
     "sealed_role": None,
