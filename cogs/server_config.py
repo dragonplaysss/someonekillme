@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 
 PANEL_OWNER_ID = 708390973712891976
@@ -45,7 +46,16 @@ def load_config():
         config.setdefault("guilds", {})
         return config
     except (json.JSONDecodeError, ValueError):
-        print(f"[Config Error] {CONFIG_PATH} is empty or invalid; using defaults.")
+        # If config is corrupted/invalid, back it up so it can be recovered.
+        try:
+            ts = time.strftime("%Y%m%d-%H%M%S")
+            backup_path = f"{CONFIG_PATH}.corrupt.{ts}"
+            if os.path.exists(CONFIG_PATH):
+                os.replace(CONFIG_PATH, backup_path)
+            print(f"[Config Error] {CONFIG_PATH} invalid; backed up to {backup_path}")
+        except Exception:
+            print(f"[Config Error] {CONFIG_PATH} is empty or invalid; using defaults.")
+
         config = json.loads(json.dumps(DEFAULT_CONFIG))
         save_config(config)
         return config
