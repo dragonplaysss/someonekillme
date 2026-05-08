@@ -20,12 +20,11 @@ DEFAULT_GUILD = {
     "channels": {
         "blacklist": None,
         "logging": None,
-        "music": None,
         "track": None,
-    },
-    "music": {
-        "webhook_url": None,
-        "message_id": None,
+        "welcome": None,
+        "goodbye": None,
+        "tickets": None,
+        "mod_logs": None,
     },
 }
 

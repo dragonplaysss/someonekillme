@@ -1,8 +1,4 @@
-discord.py[voice]>=2.4,<3
+discord.py>=2.4,<3
 python-dotenv
 aiohttp
-yt-dlp>=2026.3.17
-yt-dlp-ejs
-PyNaCl>=1.5,<2
-audioop-lts; python_version >= "3.13"
-wavelink>=3.5.2,<4
+motor>=3.6,<4

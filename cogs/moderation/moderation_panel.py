@@ -22,8 +22,11 @@ CHANNEL_KEYS = {
     "blacklist": "blacklist",
     "logging": "logging",
     "log": "logging",
-    "music": "music",
+    "mod_logs": "mod_logs",
     "track": "track",
+    "welcome": "welcome",
+    "goodbye": "goodbye",
+    "tickets": "tickets",
 }
 
 
@@ -112,7 +115,7 @@ class RemoveRoleModal(discord.ui.Modal, title="Remove Role"):
 class ChannelConfigModal(discord.ui.Modal, title="Set Channels"):
     channel_type = discord.ui.TextInput(
         label="Type",
-        placeholder="blacklist, logging, music, track",
+        placeholder="blacklist, logging, mod_logs, track, welcome, goodbye, tickets",
     )
     channel_id = discord.ui.TextInput(label="Channel ID")
 
