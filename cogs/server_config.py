@@ -15,6 +15,7 @@ DEFAULT_GUILD = {
     "mod_roles": [],
     "verify_staff_roles": [],
     "verified_roles": [],
+    "ticket_ping_roles": [],
     "unverified_role": None,
     "skip_role": None,
     "sealed_role": None,

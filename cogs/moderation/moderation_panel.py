@@ -10,6 +10,7 @@ ROLE_KEYS = {
     "mod": "mod_roles",
     "verify_staff": "verify_staff_roles",
     "verified": "verified_roles",
+    "ticket_ping": "ticket_ping_roles",
 }
 
 SINGLE_ROLE_KEYS = {
@@ -57,7 +58,7 @@ class AddRoleModal(discord.ui.Modal, title="Add Role"):
     role_id = discord.ui.TextInput(label="Role ID")
     role_type = discord.ui.TextInput(
         label="Type",
-        placeholder="admin, mod, verify_staff, verified, unverified, skip, sealed",
+        placeholder="admin, mod, verify_staff, verified, ticket_ping, unverified, skip, sealed",
     )
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -86,7 +87,7 @@ class RemoveRoleModal(discord.ui.Modal, title="Remove Role"):
     role_id = discord.ui.TextInput(label="Role ID")
     role_type = discord.ui.TextInput(
         label="Type",
-        placeholder="admin, mod, verify_staff, verified, unverified, skip, sealed",
+        placeholder="admin, mod, verify_staff, verified, ticket_ping, unverified, skip, sealed",
     )
 
     async def on_submit(self, interaction: discord.Interaction):
