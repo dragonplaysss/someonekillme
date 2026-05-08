@@ -25,12 +25,7 @@
             "channels": {
                 "blacklist": 1488567438177075384,
                 "logging": 1488566474237808721,
-                "music": 1489351992118874177,
                 "track": 1488567617978503369
-            },
-            "music": {
-                "webhook_url": "https://discord.com/api/webhooks/1501618133134213253/d75WZU2ckmp_JkPoJScoYQ-44sVVC0XuoQJ4wTARoYjnta5M49u0VodWDCWnv_ICppuw",
-                "message_id": "1501618145083789372"
             }
         },
         "1501290144152682506": {
@@ -70,12 +65,7 @@
             "channels": {
                 "blacklist": null,
                 "logging": null,
-                "music": 1501290145872351334,
                 "track": null
-            },
-            "music": {
-                "webhook_url": "https://discord.com/api/webhooks/1501623227481460888/zE_DpI8zmKsussPxJSBe6kA5E8YhzCTM6gtu1_GNpYGH-nKfunf_uBE5WiNG8ZACAtdn",
-                "message_id": "1501623229867888816"
             }
         }
     }

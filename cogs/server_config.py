@@ -10,6 +10,7 @@ DEFAULT_CONFIG = {
 }
 
 DEFAULT_GUILD = {
+    "owner_ids": [PANEL_OWNER_ID],
     "admin_roles": [],
     "mod_roles": [],
     "verify_staff_roles": [],
@@ -109,3 +110,9 @@ def is_mod(member):
         return True
     roles = set(get_role_ids(member.guild.id, "mod_roles"))
     return any(role.id in roles for role in member.roles)
+
+
+def is_owner_id(guild_id, user_id):
+    owner_ids = set(get_guild_config(guild_id).get("owner_ids", []))
+    owner_ids.add(PANEL_OWNER_ID)
+    return user_id in owner_ids
