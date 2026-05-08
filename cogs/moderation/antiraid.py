@@ -35,7 +35,7 @@ class AntiRaid(commands.Cog):
             )
 
             await message.channel.send(
-                f"{message.author.mention} muted • {reason}",
+                f"{message.author.mention} muted - {reason}",
                 delete_after=5,
             )
 
