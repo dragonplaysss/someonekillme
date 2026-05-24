@@ -12,7 +12,7 @@ from cogs.module_registry import (
     normalize_module_name,
     set_module_state,
 )
-from cogs.server_config import get_guild_config, is_admin, update_guild_config
+from cogs.server_config import get_guild_config, is_admin, is_owner_id, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -151,6 +151,8 @@ class ModuleManager(commands.Cog):
             return await self._health(message)
         if keyword == "update":
             return await self._update(message)
+        if keyword == "resync":
+            return await self._resync(message)
         if keyword == "module":
             return await self._module_command(message, trigger)
 
@@ -179,6 +181,31 @@ class ModuleManager(commands.Cog):
         embed.add_field(name="Missing Channels", value="\n".join(missing_channels) or "None", inline=False)
         embed.add_field(name="Broken Webhooks", value="\n".join(broken_webhooks[:10]) or "None found", inline=False)
         await message.channel.send(embed=embed)
+
+    async def _resync(self, message):
+        if not is_owner_id(message.guild.id, message.author.id):
+            return await message.channel.send("Owner only.")
+
+        status = await message.channel.send("Clearing slash command tree...")
+        if hasattr(self.bot, "_restore_tree_commands"):
+            self.bot._restore_tree_commands()
+        if hasattr(self.bot, "remember_app_commands"):
+            self.bot.remember_app_commands()
+
+        await status.edit(content="Rebuilding slash command tree...")
+        synced_count = 0
+        if hasattr(self.bot, "sync_visible_commands"):
+            synced_count = await self.bot.sync_visible_commands(message.guild, reason="owner resync")
+
+        health = getattr(self.bot, "slash_health", {})
+        await status.edit(
+            content=(
+                "Slash commands resynced.\n"
+                f"registered={health.get('registered', 0)} "
+                f"visible={health.get('visible', 0)} "
+                f"synced={synced_count}"
+            )
+        )
 
     async def _module_command(self, message, trigger):
         if not is_admin(message.author):

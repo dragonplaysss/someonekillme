@@ -6,7 +6,7 @@ MODULES = {
     "core": {
         "extension": "cogs.module_manager",
         "slash": ["help", "settings", "status", "enablecommands", "disablecommands"],
-        "mention": ["health", "module", "update", "shorehelp", "ping", "whoami", "config", "showconfig", "verifyconfig"],
+        "mention": ["health", "module", "update", "resync", "shorehelp", "ping", "whoami", "config", "showconfig", "verifyconfig"],
     },
     "applications": {
         "extension": "cogs.applications",

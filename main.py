@@ -51,7 +51,13 @@ class MyBot(commands.Bot):
             command_prefix="!",
             intents=intents,
         )
-        self._all_global_app_commands = {}
+        self._all_app_commands = []
+        self._startup_synced = False
+        self.slash_health = {
+            "registered": 0,
+            "visible": 0,
+            "synced": 0,
+        }
 
     def load_db(self):
         try:
@@ -77,56 +83,109 @@ class MyBot(commands.Bot):
                 print(f"[FAILED] {cog}: {type(e).__name__}: {e}")
 
         self.remember_app_commands()
-        await self.sync_visible_commands()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
+        if not self._startup_synced:
+            self._startup_synced = True
+            await self.sync_visible_commands(reason="startup")
 
     def remember_app_commands(self):
-        self._all_global_app_commands = dict(getattr(self.tree, "_global_commands", {}))
+        self._all_app_commands = list(self.tree.get_commands())
+        self.slash_health["registered"] = len(self._all_app_commands)
+        print("[SLASH REGISTERED]")
+        for command in self._all_app_commands:
+            print(getattr(command, "name", str(command)))
 
     def _set_visible_tree_commands(self, command_names):
-        all_commands = self._all_global_app_commands or dict(getattr(self.tree, "_global_commands", {}))
-        visible = {name.lower() for name in command_names}
-        filtered = {}
-        for key, command in all_commands.items():
-            command_name = getattr(command, "name", str(key)).lower()
-            module = module_for_slash(command_name)
-            if command_name in visible or module == "core":
-                filtered[key] = command
-        self.tree._global_commands = filtered
-
-    def _restore_tree_commands(self):
-        if self._all_global_app_commands:
-            self.tree._global_commands = dict(self._all_global_app_commands)
-
-    async def sync_visible_commands(self, guild=None):
-        if not self._all_global_app_commands:
+        if not self._all_app_commands:
             self.remember_app_commands()
 
-        try:
-            self._set_visible_tree_commands({"help", "settings", "status", "enablecommands", "disablecommands"})
-            await self.tree.sync()
-        except Exception as e:
-            print(f"[GLOBAL SYNC FAILED] {type(e).__name__}: {e}")
-        finally:
-            self._restore_tree_commands()
+        requested = {name.lower() for name in command_names}
+        core = {"help", "settings", "status", "enablecommands", "disablecommands"}
+        visible = set(requested or core)
+        selected = []
+        for command in self._all_app_commands:
+            command_name = getattr(command, "name", "").lower()
+            module = module_for_slash(command_name)
+            if command_name in visible or module == "core":
+                selected.append(command)
+
+        if not selected:
+            visible = set(core)
+            selected = [
+                command
+                for command in self._all_app_commands
+                if getattr(command, "name", "").lower() in visible
+            ]
+
+        self.tree.clear_commands(guild=None)
+        for command in selected:
+            self.tree.add_command(command)
+
+        visible_names = [command.name for command in selected]
+        self.slash_health["visible"] = len(visible_names)
+        print("[SLASH VISIBLE]")
+        for name in visible_names:
+            print(name)
+        return visible_names
+
+    def _restore_tree_commands(self):
+        self.tree.clear_commands(guild=None)
+        for command in self._all_app_commands:
+            self.tree.add_command(command)
+
+    async def sync_visible_commands(self, guild=None, reason="manual"):
+        if not self._all_app_commands:
+            self.remember_app_commands()
 
         targets = [guild] if guild else list(self.guilds)
         if not targets:
             configured = load_config().get("guilds", {})
             targets = [discord.Object(id=int(gid)) for gid in configured if gid.isdigit()]
 
-        for target in targets:
-            try:
+        if not targets:
+            targets = [None]
+
+        total_synced = 0
+        try:
+            for target in targets:
+                if target is None:
+                    visible_names = self._set_visible_tree_commands(
+                        {"help", "settings", "status", "enablecommands", "disablecommands"}
+                    )
+                    synced = await self.tree.sync()
+                    total_synced += len(synced)
+                    self._log_synced_commands(synced, "global", reason, visible_names)
+                    continue
+
                 guild_config = get_guild_config(target.id)
-                self._set_visible_tree_commands(visible_slash_commands(guild_config))
-                await self.tree.sync(guild=target)
-                print(f"[SYNCED] visible commands for guild {target.id}")
-            except Exception as e:
-                print(f"[GUILD SYNC FAILED] {getattr(target, 'id', '?')}: {type(e).__name__}: {e}")
-            finally:
-                self._restore_tree_commands()
+                visible_names = self._set_visible_tree_commands(visible_slash_commands(guild_config))
+                self.tree.clear_commands(guild=target)
+                for command in self.tree.get_commands():
+                    self.tree.add_command(command, guild=target)
+                synced = await self.tree.sync(guild=target)
+                total_synced += len(synced)
+                self._log_synced_commands(synced, f"guild {target.id}", reason, visible_names)
+        except Exception as e:
+            print(f"[SLASH SYNC FAILED] {type(e).__name__}: {e}")
+        finally:
+            self.slash_health["synced"] = total_synced
+            print(
+                "[SLASH HEALTH] "
+                f"registered={self.slash_health['registered']} "
+                f"visible={self.slash_health['visible']} "
+                f"synced={self.slash_health['synced']}"
+            )
+            self._restore_tree_commands()
+
+        return total_synced
+
+    def _log_synced_commands(self, synced, scope, reason, visible_names):
+        print(f"[SLASH SYNC] scope={scope} reason={reason} visible={len(visible_names)} synced={len(synced)}")
+        print("[SLASH SYNCED]")
+        for command in synced:
+            print(command.name)
 
 
 async def main():
