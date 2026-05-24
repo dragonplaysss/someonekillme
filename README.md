@@ -1,147 +1,103 @@
-# Shorekeeper Manual (Discord)
+# Shorekeeper Final Legacy Update
 
-This is the **user manual** for people using Shorekeeper in Discord. (No hosting/setup info.)
+Shorekeeper is a discord.py bot built around cogs, mention commands, slash commands, persistent server config, tickets, verification, moderation, roles, welcome messages, divisions, applications, and FastFlag file classification.
 
-## Command style
+This release is a maintenance and handoff update. It keeps legacy mention commands working while reducing the public slash command surface.
 
-Most commands use mention syntax:
+## Install
 
-```text
-@Shorekeeper [keyword] [@user] ; [reason/args]
+1. Install Python 3.11 or newer.
+2. Install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
 
-Role commands can optionally include a reason after `|`:
+3. Copy `.env.example` to `.env` and set `DISCORD_TOKEN`.
+4. Start the bot:
 
-```text
-@Shorekeeper giverole @user ; RoleNameOrId | reason
-@Shorekeeper removerole @user ; RoleNameOrId | reason
+```bash
+python main.py
 ```
 
-## Permissions (quick)
+## Visible Slash Commands
 
-- **Admin**: Discord Administrator OR listed in bot `admin_roles`
-- **Mod**: Admin OR listed in bot `mod_roles`
-- **Owner IDs**: IDs in `owner_ids` (plus the main panel owner)
+Only these commands are intended to remain visible by default:
 
-Check yourself:
+- `/help`
+- `/settings`
+- `/status`
+- `/enablecommands`
+- `/disablecommands`
 
-- `@Shorekeeper whoami`
+Legacy slash commands are controlled by modules and are hidden unless a module is enabled.
 
-## Setup / configuration
+## Mention Commands
 
-See current settings:
+Mention commands keep the legacy style:
 
-- `@Shorekeeper config`
+```text
+@Shorekeeper keyword args ; extra
+```
 
-Open config panel (owner-only):
+Examples:
 
-- `@Shorekeeper modpanel`
+- `@Shorekeeper verify @user ; reason`
+- `@Shorekeeper health`
+- `@Shorekeeper update`
+- `@Shorekeeper application create ; https://forms.gle/example optional-token`
+- `@Shorekeeper ffcheck` with an attached `.txt`, `.json`, or `ClientAppSettings.json`
 
-Common channel keys:
+## Modules
 
-- `logging`
-- `mod_logs`
-- `welcome`
-- `goodbye`
-- `tickets`
+Use:
 
-## Moderation
+- `/status`
+- `/enablecommands <module>`
+- `/disablecommands <module>`
+- `@Shorekeeper module debug <module>`
+- `@Shorekeeper module disable <module>`
+- `@Shorekeeper module recover`
 
-- `@Shorekeeper kick @user ; reason`
-- `@Shorekeeper ban @user ; reason`
-- `@Shorekeeper unban @user_or_id ; reason`
-- `@Shorekeeper mute @user ; reason` (supports duration in the main part like `10m`)
-- `@Shorekeeper unmute @user ; reason`
-- `@Shorekeeper warn @user ; reason`
-- `@Shorekeeper warns [@user]`
+Module states are stored per guild in `config.modules`.
 
-Behavior:
+See `MODULES.md` for the full module table and behavior.
 
-- DMs the punished user with server/action/reason
-- Logs to `mod_logs` (fallback: `logging`)
+## Application Engine
 
-## Verify
+Applications are mention-only:
 
-- `@Shorekeeper verify @user ; optional reason`
+- `@Shorekeeper application create ; <google_form_url> [token]`
+- `@Shorekeeper application verify [token]`
+- `@Shorekeeper application review`
+- `@Shorekeeper application close`
 
-Verify config keys:
+Data is stored in `config/applications.json`. Reviewer notifications are sent to the channel where the application was created.
 
-- `verify_staff_roles`
-- `verified_roles`
-- `unverified_role`
+## FastFlag Checker
 
-## Nick lock (admin)
+FastFlag checks are mention-only and classification-only:
 
-- `@Shorekeeper locknick @user ; New Nickname`
-- `@Shorekeeper unlocknick @user ; reason`
-- `@Shorekeeper nicklocks`
+- `@Shorekeeper ffcheck <attachment>`
+- `@Shorekeeper ff allow <pattern>`
+- `@Shorekeeper ff warn <pattern>`
+- `@Shorekeeper ff review <pattern>`
 
-## Role tools (mod)
+Rules live in `config/ff_rules.json`. This tool never labels a user as a cheater, exploiter, or auto-ban target.
 
-- `@Shorekeeper giverole @user ; RoleNameOrId | optional reason`
-- `@Shorekeeper removerole @user ; RoleNameOrId | optional reason`
+## Health And Recovery
 
-## Tickets
+- `@Shorekeeper health` checks loaded cogs, extension count, RAM availability, missing configured channels, and webhook access.
+- `@Shorekeeper module recover` attempts to reload missing module extensions and resync visible commands.
+- `@Shorekeeper update` runs the legacy-safe migration flow and shows enabled modules.
 
-Send the panel:
+## Test Checklist
 
-- `/ticketpanel`
-
-Anyone can open a ticket from the **Open Ticket** button.
-
-### Ticket pings (helper roles)
-
-To ping helper roles when a ticket is created:
-
-- `@Shorekeeper modpanel` -> **Add Role**
-- Type: `ticket_ping`
-- Role ID: *(copy role ID from Discord)*
-
-### Ticket commands (only work in ticket channels)
-
-- `@Shorekeeper transcripttk` (archive transcript only)
-- `@Shorekeeper closeticket` (archive transcript then delete channel)
-- `@Shorekeeper deletetk` (delete without transcript; mod/owner only)
-
-Where transcripts go:
-
-- to `mod_logs` (fallback: `logging`) as a `.txt` attachment
-
-## Welcome / Goodbye
-
-Set channels:
-
-- `/setupwelcome #channel`
-- `/setupgoodbye #channel`
-
-Set custom GIF/image per server:
-
-- `/setwelcomegif <url>`
-- `/setgoodbyegif <url>`
-
-## Embed / Webhook tools (admin)
-
-- `/embed` (modal: title/description/color/image/thumbnail)
-- `/webhook` (creates a webhook and returns URL)
-
-## Vibe / Leveling
-
-- `@Shorekeeper vibe [@user]`
-
-## Fun locks (admin + owner IDs)
-
-These delete the user’s message and re-post via webhook using their name/avatar.
-
-- `@Shorekeeper barklock @user ; reason`
-- `@Shorekeeper unbarklock @user ; reason`
-- `@Shorekeeper uwulock @user ; reason`
-- `@Shorekeeper unuwulock @user ; reason`
-- `@Shorekeeper lockstatus @user`
-
-## Utilities
-
-- `@Shorekeeper ping`
-- `@Shorekeeper avatar [@user]`
-- `@Shorekeeper userinfo [@user]`
-- `@Shorekeeper serverinfo`
-- `@Shorekeeper shorehelp`
+- Start the bot with `python main.py`.
+- Confirm `/status` shows module states.
+- Confirm only core slash commands are visible by default.
+- Run `/enablecommands divisions`, verify division slash commands appear, then `/disablecommands divisions`.
+- Run legacy mention commands for verify, tickets, moderation, roles, and divisions.
+- Upload a sample `ClientAppSettings.json` with `@Shorekeeper ffcheck`.
+- Run `@Shorekeeper application create`, `verify`, `review`, and `close`.
+- Run `@Shorekeeper health` and `@Shorekeeper update`.

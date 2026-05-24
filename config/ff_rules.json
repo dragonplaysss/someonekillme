@@ -1,0 +1,31 @@
+{
+  "categories": {
+    "safe_prefixes": [
+      "DFIntTaskScheduler",
+      "FFlagDebug",
+      "FIntFullscreen",
+      "DFFlagTexture",
+      "FStringGraphics",
+      "DFIntGraphics",
+      "FIntGraphics"
+    ],
+    "review_prefixes": [
+      "Network",
+      "Physics",
+      "Replication",
+      "Prediction",
+      "Character",
+      "Movement",
+      "SenderRate"
+    ],
+    "warning_patterns": [
+      ".*Bypass.*",
+      ".*Override.*",
+      ".*Internal.*",
+      ".*Experiment.*",
+      ".*Version.*\\d+$"
+    ],
+    "allowed_patterns": [],
+    "review_patterns": []
+  }
+}

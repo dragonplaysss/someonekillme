@@ -1,5 +1,8 @@
 import re
 
+from cogs.module_registry import get_module_state, module_for_mention
+from cogs.server_config import get_guild_config
+
 
 USER_ID_RE = re.compile(r"\d{17,20}")
 
@@ -30,6 +33,15 @@ def parse_shorekeeper_trigger(bot, message):
         return None
 
     keyword = main_parts[0].lower()
+    module = module_for_mention(keyword)
+    if module:
+        guild_config = get_guild_config(message.guild.id)
+        state = get_module_state(guild_config, module)
+        if state == "disabled":
+            return None
+        if state == "debug":
+            print(f"[MODULE DEBUG] guild={message.guild.id} module={module} keyword={keyword} author={message.author.id}")
+
     target_id = None
     target = None
 
