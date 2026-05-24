@@ -12,11 +12,13 @@ MODULES = {
         "extension": "cogs.applications",
         "slash": [],
         "mention": ["application"],
+        "default_state": "disabled",
     },
     "ff": {
         "extension": "cogs.ff_checker",
         "slash": [],
         "mention": ["ffcheck", "ff"],
+        "default_state": "disabled",
     },
     "divisions": {
         "extension": "cogs.divisions",
@@ -148,6 +150,8 @@ def get_module_state(guild_config, module):
     if module in states:
         return normalize_state(states.get(module))
     meta = MODULES.get(module, {})
+    if meta.get("default_state"):
+        return normalize_state(meta["default_state"])
     return "hidden" if meta.get("slash") else "active"
 
 

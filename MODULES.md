@@ -21,7 +21,7 @@ Example:
 - `DISABLED`: module commands are unavailable for that guild.
 - `DEBUG`: module is loaded, slash commands are visible, and status surfaces it as debug.
 
-Modules with slash commands default to `HIDDEN` so the long-term visible command list stays small. Mention-only modules default to `ACTIVE`.
+Modules with slash commands default to `HIDDEN` so the long-term visible command list stays small. Legacy mention-only modules default to `ACTIVE`. New handoff modules such as `applications` and `ff` default to `DISABLED` and must be enabled manually.
 
 ## Commands
 

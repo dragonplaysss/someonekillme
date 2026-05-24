@@ -64,6 +64,20 @@ class ModuleManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def _can_manage_modules(self, user, guild):
+        if not guild:
+            return False
+        if getattr(guild, "owner_id", None) == user.id:
+            return True
+        if is_owner_id(guild.id, user.id):
+            return True
+        if isinstance(user, discord.Member) and is_admin(user):
+            return True
+        try:
+            return await self.bot.is_owner(user)
+        except Exception:
+            return False
+
     def _module_lines(self, guild):
         cfg = get_guild_config(guild.id)
         lines = []
@@ -82,7 +96,7 @@ class ModuleManager(commands.Cog):
     async def _set_module(self, interaction, module, state):
         if not interaction.guild:
             return await interaction.response.send_message("Use this in a server.", ephemeral=True)
-        if not is_admin(interaction.user):
+        if not await self._can_manage_modules(interaction.user, interaction.guild):
             return await interaction.response.send_message("No permission.", ephemeral=True)
 
         module = normalize_module_name(module)
@@ -183,7 +197,7 @@ class ModuleManager(commands.Cog):
         await message.channel.send(embed=embed)
 
     async def _resync(self, message):
-        if not is_owner_id(message.guild.id, message.author.id):
+        if not await self._can_manage_modules(message.author, message.guild):
             return await message.channel.send("Owner only.")
 
         status = await message.channel.send("Clearing slash command tree...")
@@ -208,7 +222,7 @@ class ModuleManager(commands.Cog):
         )
 
     async def _module_command(self, message, trigger):
-        if not is_admin(message.author):
+        if not await self._can_manage_modules(message.author, message.guild):
             return await message.channel.send("No permission.")
         args = trigger["args"]
         if not args:
@@ -255,7 +269,7 @@ class ModuleManager(commands.Cog):
         return await message.channel.send("Unknown module action.")
 
     async def _update(self, message):
-        if not is_admin(message.author):
+        if not await self._can_manage_modules(message.author, message.guild):
             return await message.channel.send("No permission.")
         status = await message.channel.send("Checking...")
         await status.edit(content="Checking...\nMigrating...")
