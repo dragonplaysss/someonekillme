@@ -1,6 +1,6 @@
 import re
 
-from cogs.module_registry import get_module_state, module_for_mention
+from cogs.module_registry import get_module_state, module_for_mention, normalize_mention_keyword
 from cogs.server_config import get_guild_config
 
 
@@ -32,7 +32,8 @@ def parse_shorekeeper_trigger(bot, message):
     if not main_parts:
         return None
 
-    keyword = main_parts[0].lower()
+    raw_keyword = main_parts[0].lower()
+    keyword = normalize_mention_keyword(raw_keyword)
     module = module_for_mention(keyword)
     if module:
         guild_config = get_guild_config(message.guild.id)
@@ -40,7 +41,7 @@ def parse_shorekeeper_trigger(bot, message):
         if state == "disabled":
             return None
         if state == "debug":
-            print(f"[MODULE DEBUG] guild={message.guild.id} module={module} keyword={keyword} author={message.author.id}")
+            print(f"[MODULE DEBUG] guild={message.guild.id} module={module} keyword={raw_keyword}->{keyword} author={message.author.id}")
 
     target_id = None
     target = None
@@ -59,6 +60,7 @@ def parse_shorekeeper_trigger(bot, message):
 
     return {
         "keyword": keyword,
+        "raw_keyword": raw_keyword,
         "main": main.strip(),
         "args": main_parts[1:],
         "extra": extra.strip() if sep else "",

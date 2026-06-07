@@ -16,6 +16,8 @@ class Roles(commands.Cog):
         trigger = parse_shorekeeper_trigger(self.bot, message)
         if not trigger or trigger["keyword"] not in {"giverole", "removerole"}:
             return
+        if self.bot.get_cog("RoleToolsCog"):
+            return
 
         if not is_admin(message.author):
             return await message.channel.send("Nice try, get perms.")

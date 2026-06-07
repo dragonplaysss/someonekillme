@@ -4,7 +4,7 @@ import time
 from copy import deepcopy
 
 
-PANEL_OWNER_ID = 1356810408870154351
+PANEL_OWNER_ID = 708390973712891976
 CONFIG_PATH = "cogs/moderation/data2/server_config.json"
 
 DEFAULT_CONFIG = {

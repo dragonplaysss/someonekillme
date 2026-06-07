@@ -8,6 +8,7 @@ from discord.ext import commands
 from cogs.module_registry import (
     MODULES,
     get_module_state,
+    mention_command_list,
     module_names,
     normalize_module_name,
     set_module_state,
@@ -147,12 +148,23 @@ class ModuleManager(commands.Cog):
 
     @app_commands.command(name="help", description="Show Shorekeeper handoff commands.")
     async def help(self, interaction: discord.Interaction):
-        text = (
-            "Core slash commands: `/help`, `/settings`, `/status`, `/enablecommands`, `/disablecommands`.\n"
-            "Mention tools: `@Shorekeeper health`, `@Shorekeeper update`, "
-            "`@Shorekeeper module debug <module>`, `@Shorekeeper module recover`."
+        embed = discord.Embed(
+            title="Shorekeeper Commands",
+            description=(
+                "Mention commands use `@Shorekeeper command ...`.\n"
+                "Use `@Shorekeeper shorehelp` for the same command list in chat."
+            ),
+            color=0x5865F2,
         )
-        await interaction.response.send_message(text, ephemeral=True)
+        for module, meta in MODULES.items():
+            slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
+            mention = mention_command_list(meta.get("mention", []))
+            embed.add_field(
+                name=module.title(),
+                value=f"Slash: {slash}\nMention: {mention}"[:1024],
+                inline=False,
+            )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

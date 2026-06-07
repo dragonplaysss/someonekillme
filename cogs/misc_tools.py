@@ -1,3 +1,4 @@
+import datetime
 import random
 import re
 
@@ -5,6 +6,7 @@ import discord
 from discord.ext import commands
 
 from cogs.mongo_client import get_mongo_database
+from cogs.module_registry import MODULES, mention_command_list
 from cogs.server_config import get_guild_config, is_admin, is_owner_id, is_panel_owner, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
@@ -16,11 +18,13 @@ class MiscToolsCog(commands.Cog):
         self.warns = self.db["warns"]
         self.bark_locks = self.db["bark_locks"]
         self.uwu_locks = self.db["uwu_locks"]
+        self.afk = self.db["afk"]
         self.webhook_cache = {}
 
     async def cog_load(self):
         await self.bark_locks.create_index([("guild_id", 1), ("user_id", 1)], unique=True)
         await self.uwu_locks.create_index([("guild_id", 1), ("user_id", 1)], unique=True)
+        await self.afk.create_index([("guild_id", 1), ("user_id", 1)], unique=True)
 
     def _parse_id(self, raw: str):
         digits = "".join(ch for ch in raw if ch.isdigit())
@@ -106,6 +110,69 @@ class MiscToolsCog(commands.Cog):
             return True
         return False
 
+    def _can_edit_nick(self, member: discord.Member):
+        bot_member = member.guild.me or member.guild.get_member(self.bot.user.id)
+        if not bot_member or not bot_member.guild_permissions.manage_nicknames:
+            return False
+        if member == member.guild.owner:
+            return False
+        return member.top_role < bot_member.top_role
+
+    async def _set_afk_nick(self, member: discord.Member):
+        if not self._can_edit_nick(member):
+            return None, False
+
+        original_nick = member.nick
+        display_name = member.display_name
+        if display_name.upper().startswith("[AFK]"):
+            return original_nick, True
+
+        new_nick = f"[AFK] {display_name}"[:32]
+        try:
+            await member.edit(nick=new_nick, reason="AFK enabled")
+            return original_nick, True
+        except Exception:
+            return original_nick, False
+
+    async def _restore_afk_nick(self, member: discord.Member, original_nick):
+        if not self._can_edit_nick(member):
+            return False
+        if not member.display_name.upper().startswith("[AFK]"):
+            return True
+        try:
+            await member.edit(nick=original_nick, reason="AFK disabled")
+            return True
+        except Exception:
+            return False
+
+    def _reply_author_id(self, message: discord.Message):
+        reference = message.reference
+        if not reference:
+            return None
+        resolved = getattr(reference, "resolved", None)
+        if isinstance(resolved, discord.Message):
+            return resolved.author.id
+        return None
+
+    async def _notify_afk_target(self, message: discord.Message, user_id: int, afk_status):
+        member = message.guild.get_member(user_id)
+        label = member.mention if member else f"<@{user_id}>"
+        reason = afk_status.get("reason") or "AFK"
+        since = afk_status.get("since")
+        if since and since.tzinfo is None:
+            since = since.replace(tzinfo=datetime.timezone.utc)
+        suffix = f" since {discord.utils.format_dt(since, 'R')}" if since else ""
+
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        await message.channel.send(
+            f"{label} is AFK{suffix}: {reason}",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
@@ -114,6 +181,45 @@ class MiscToolsCog(commands.Cog):
             return
 
         trigger = parse_shorekeeper_trigger(self.bot, message)
+        if trigger and trigger["keyword"] == "afk":
+            reason = trigger["extra"] or " ".join(trigger["args"]) or "AFK"
+            original_nick, nick_changed = await self._set_afk_nick(message.author)
+            await self.afk.update_one(
+                {"guild_id": message.guild.id, "user_id": message.author.id},
+                {
+                    "$set": {
+                        "reason": reason[:500],
+                        "since": discord.utils.utcnow(),
+                        "original_nick": original_nick,
+                        "nick_changed": nick_changed,
+                    }
+                },
+                upsert=True,
+            )
+            suffix = "" if nick_changed else " I could not change your nickname."
+            return await message.channel.send(f"{message.author.mention} is now AFK: {reason[:500]}{suffix}")
+
+        existing_afk = await self.afk.find_one({"guild_id": message.guild.id, "user_id": message.author.id})
+        if existing_afk:
+            await self._restore_afk_nick(message.author, existing_afk.get("original_nick"))
+            await self.afk.delete_one({"guild_id": message.guild.id, "user_id": message.author.id})
+            await message.channel.send(f"Welcome back {message.author.mention}. I removed your AFK.")
+
+        mentioned_ids = {
+            member.id
+            for member in message.mentions
+            if member.id not in {message.author.id, self.bot.user.id}
+        }
+        reply_author_id = self._reply_author_id(message)
+        if reply_author_id and reply_author_id not in {message.author.id, self.bot.user.id}:
+            mentioned_ids.add(reply_author_id)
+
+        for user_id in mentioned_ids:
+            afk_status = await self.afk.find_one({"guild_id": message.guild.id, "user_id": user_id})
+            if not afk_status:
+                continue
+            return await self._notify_afk_target(message, user_id, afk_status)
+
         if not trigger:
             return
 
@@ -401,34 +507,50 @@ class MiscToolsCog(commands.Cog):
             return await message.channel.send(f"{trigger['target'].mention} lock status: **{status}**")
 
         if keyword == "shorehelp":
-            embed = discord.Embed(title="Shorekeeper Command Rundown", color=0x5865F2)
-            embed.description = (
-                "`@Shorekeeper kick @user ; reason`\n"
-                "`@Shorekeeper ban @user ; reason`\n"
-                "`@Shorekeeper unban @user_or_id ; reason`\n"
-                "`@Shorekeeper mute @user ; reason`\n"
-                "`@Shorekeeper unmute @user ; reason`\n"
-                "`@Shorekeeper warn @user ; reason`\n"
-                "`@Shorekeeper locknick @user ; new nickname`\n"
-                "`@Shorekeeper unlocknick @user ; reason`\n"
-                "`@Shorekeeper nicklocks`\n"
-                "`@Shorekeeper giverole @user ; role_name_or_id | reason`\n"
-                "`@Shorekeeper removerole @user ; role_name_or_id | reason`\n"
-                "`@Shorekeeper vibe [@user]`\n"
-                "`@Shorekeeper ghost`\n"
-                "`@Shorekeeper config`\n"
-                "`@Shorekeeper setverify ; key value`\n"
-                "`@Shorekeeper owners`\n"
-                "`@Shorekeeper setowner ; add/remove user_id`\n"
-                "`@Shorekeeper force ; nick @user | nickname`\n"
-                "`@Shorekeeper barklock @user ; reason`\n"
-                "`@Shorekeeper unbarklock @user ; reason`\n"
-                "`@Shorekeeper uwulock @user ; reason`\n"
-                "`@Shorekeeper unuwulock @user ; reason`\n"
-                "`@Shorekeeper lockstatus @user`\n"
-                "`@Shorekeeper whoami`\n"
-                "`@Shorekeeper ping / avatar / userinfo / serverinfo / warns`\n"
-                "Slash: `/setupwelcome`, `/setupgoodbye`, `/ticketpanel`, `/embed`, `/webhook`"
+            embed = discord.Embed(
+                title="Shorekeeper Commands",
+                description=(
+                    "Mention commands use `@Shorekeeper command ...`.\n"
+                    "Use `;` for reasons or extra input, for example "
+                    "`@Shorekeeper warn @user ; reason`."
+                ),
+                color=0x5865F2,
+            )
+            for module, meta in MODULES.items():
+                slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
+                mention = mention_command_list(meta.get("mention", []))
+                value = f"Slash: {slash}\nMention: {mention}"
+                embed.add_field(name=module.title(), value=value[:1024], inline=False)
+            embed.add_field(
+                name="Ticket Syntax",
+                value=(
+                    "`@Shorekeeper transcripttk`\n"
+                    "`@Shorekeeper transcript`\n"
+                    "`@Shorekeeper closeticket`\n"
+                    "`@Shorekeeper close`\n"
+                    "`@Shorekeeper deletetk`\n"
+                    "`@Shorekeeper deltk`\n"
+                    "`@Shorekeeper addtoticket @user_or_id`\n"
+                    "`@Shorekeeper addtk @user_or_id`\n"
+                    "`@Shorekeeper removefromticket @user_or_id`\n"
+                    "`@Shorekeeper remtk @user_or_id`"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Useful Examples",
+                value=(
+                    "`@Shorekeeper afk reason` or `@Shorekeeper afk ; reason`\n"
+                    "`@Shorekeeper giverole @user ; role name | reason`\n"
+                    "`@Shorekeeper locknick @user ; nickname`\n"
+                    "`@Shorekeeper ffcheck` with an attached flags file"
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Legacy Prefix",
+                value="`!logs`, `!addtoticket @user`, `!removefromticket @user`",
+                inline=False,
             )
             return await message.channel.send(embed=embed)
 

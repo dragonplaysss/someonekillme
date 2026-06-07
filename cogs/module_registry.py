@@ -2,6 +2,37 @@ CORE_MODULE = "core"
 MODULE_STATES = {"active", "hidden", "disabled", "debug"}
 VISIBLE_CORE_COMMANDS = {"help", "settings", "status", "enablecommands", "disablecommands"}
 
+COMMAND_ALIASES = {
+    "commands": "shorehelp",
+    "cmds": "shorehelp",
+    "sync": "resync",
+    "flags": "ffcheck",
+    "joindiv": "joindivision",
+    "leavediv": "leavedivision",
+    "transcript": "transcripttk",
+    "close": "closeticket",
+    "deltk": "deletetk",
+    "addtk": "addtoticket",
+    "remtk": "removefromticket",
+    "timeout": "mute",
+    "clean": "purge",
+    "addrole": "giverole",
+    "remrole": "removerole",
+    "lockdown": "seal",
+    "unlock": "unseal",
+    "av": "avatar",
+    "server": "serverinfo",
+    "user": "userinfo",
+    "me": "whoami",
+    "cfg": "config",
+    "bark": "barklock",
+    "unbark": "unbarklock",
+    "uwu": "uwulock",
+    "unuwu": "unuwulock",
+    "away": "afk",
+    "brb": "afk",
+}
+
 MODULES = {
     "core": {
         "extension": "cogs.module_manager",
@@ -85,7 +116,7 @@ MODULES = {
     "roles": {
         "extension": "cogs.roles",
         "slash": [],
-        "mention": ["giverole", "removerole"],
+        "mention": [],
     },
     "misc": {
         "extension": "cogs.misc_tools",
@@ -104,6 +135,7 @@ MODULES = {
             "uwulock",
             "unuwulock",
             "lockstatus",
+            "afk",
         ],
     },
     "vibe": {
@@ -178,11 +210,32 @@ def module_for_slash(command_name):
 
 
 def module_for_mention(keyword):
-    keyword = (keyword or "").lower()
+    keyword = normalize_mention_keyword(keyword)
     for module, meta in MODULES.items():
         if keyword in {item.lower() for item in meta.get("mention", [])}:
             return module
     return None
+
+
+def normalize_mention_keyword(keyword):
+    lowered = (keyword or "").strip().lower()
+    return COMMAND_ALIASES.get(lowered, lowered)
+
+
+def aliases_for_mention(command_name):
+    command_name = (command_name or "").strip().lower()
+    return sorted(alias for alias, canonical in COMMAND_ALIASES.items() if canonical == command_name)
+
+
+def mention_command_label(command_name):
+    aliases = aliases_for_mention(command_name)
+    if aliases:
+        return f"`{command_name}` ({', '.join(f'`{alias}`' for alias in aliases)})"
+    return f"`{command_name}`"
+
+
+def mention_command_list(command_names):
+    return ", ".join(mention_command_label(name) for name in command_names) or "None"
 
 
 def visible_slash_commands(guild_config):

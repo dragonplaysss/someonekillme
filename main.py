@@ -101,6 +101,20 @@ class MyBot(commands.Bot):
         if not self._all_app_commands:
             self.remember_app_commands()
 
+        selected = self._select_visible_commands(command_names)
+
+        self.tree.clear_commands(guild=None)
+        for command in selected:
+            self.tree.add_command(command)
+
+        visible_names = [command.name for command in selected]
+        self.slash_health["visible"] = len(visible_names)
+        print("[SLASH VISIBLE]")
+        for name in visible_names:
+            print(name)
+        return visible_names
+
+    def _select_visible_commands(self, command_names):
         requested = {name.lower() for name in command_names}
         core = {"help", "settings", "status", "enablecommands", "disablecommands"}
         visible = set(requested or core)
@@ -119,16 +133,7 @@ class MyBot(commands.Bot):
                 if getattr(command, "name", "").lower() in visible
             ]
 
-        self.tree.clear_commands(guild=None)
-        for command in selected:
-            self.tree.add_command(command)
-
-        visible_names = [command.name for command in selected]
-        self.slash_health["visible"] = len(visible_names)
-        print("[SLASH VISIBLE]")
-        for name in visible_names:
-            print(name)
-        return visible_names
+        return selected
 
     def _restore_tree_commands(self):
         self.tree.clear_commands(guild=None)
@@ -149,6 +154,12 @@ class MyBot(commands.Bot):
 
         total_synced = 0
         try:
+            if any(target is not None for target in targets):
+                self.tree.clear_commands(guild=None)
+                cleared = await self.tree.sync()
+                self._log_synced_commands(cleared, "global", f"{reason} clear stale globals", [])
+                self._restore_tree_commands()
+
             for target in targets:
                 if target is None:
                     visible_names = self._set_visible_tree_commands(
@@ -160,9 +171,14 @@ class MyBot(commands.Bot):
                     continue
 
                 guild_config = get_guild_config(target.id)
-                visible_names = self._set_visible_tree_commands(visible_slash_commands(guild_config))
+                selected = self._select_visible_commands(visible_slash_commands(guild_config))
+                visible_names = [command.name for command in selected]
+                self.slash_health["visible"] = len(visible_names)
+                print("[SLASH VISIBLE]")
+                for name in visible_names:
+                    print(name)
                 self.tree.clear_commands(guild=target)
-                for command in self.tree.get_commands():
+                for command in selected:
                     self.tree.add_command(command, guild=target)
                 synced = await self.tree.sync(guild=target)
                 total_synced += len(synced)

@@ -205,6 +205,16 @@ class TicketCog(commands.Cog):
     def get_staff_role(self, guild: discord.Guild):
         return discord.utils.get(guild.roles, name=STAFF_ROLE_NAME)
 
+    def _configured_ticket_roles(self, guild: discord.Guild):
+        cfg = get_guild_config(guild.id)
+        role_ids = set(cfg.get("ticket_ping_roles", []))
+        role_ids.update(cfg.get("admin_roles", []))
+        role_ids.update(cfg.get("mod_roles", []))
+        staff_role = self.get_staff_role(guild)
+        if staff_role:
+            role_ids.add(staff_role.id)
+        return [role for role_id in role_ids if (role := guild.get_role(role_id))]
+
     def _user_has_open_ticket(self, guild: discord.Guild, user_id: int):
         pattern = _ticket_channel_name_pattern()
         for ch in guild.text_channels:
@@ -271,7 +281,7 @@ class TicketCog(commands.Cog):
     def _is_ticket_channel(self, channel: discord.abc.GuildChannel):
         if not isinstance(channel, discord.TextChannel):
             return False
-        if channel.name.startswith(TICKET_NAME_PREFIXES):
+        if channel.name.startswith(TICKET_NAME_PREFIXES) and channel.topic and TICKET_TOPIC_MARKER in channel.topic:
             return True
         return bool(channel.topic and TICKET_TOPIC_MARKER in channel.topic)
 
@@ -286,6 +296,20 @@ class TicketCog(commands.Cog):
                 except Exception:
                     return None
         return None
+
+    def _can_manage_ticket(self, member: discord.Member, channel: discord.TextChannel, allow_owner=True):
+        owner_id = self._ticket_owner_id_from_topic(channel)
+        if allow_owner and owner_id is not None and member.id == owner_id:
+            return True
+        return is_mod(member) or is_owner_id(channel.guild.id, member.id)
+
+    def _ticket_allowed_mentions(self, user: discord.abc.User, roles):
+        return discord.AllowedMentions(
+            users=[user],
+            roles=roles,
+            everyone=False,
+            replied_user=False,
+        )
 
     async def build_transcript_file(self, channel: discord.TextChannel):
         lines = []
@@ -437,20 +461,36 @@ class TicketCog(commands.Cog):
         suffix = random.randint(1000, 9999)
         channel_name = f"{prefix}-{suffix}"
 
-        cfg = get_guild_config(guild.id)
-        ping_role_ids = cfg.get("ticket_ping_roles", [])
-        ping_roles = [guild.get_role(rid) for rid in ping_role_ids if guild.get_role(rid)]
-        staff_role = self.get_staff_role(guild)
+        ticket_roles = self._configured_ticket_roles(guild)
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True,
+                manage_messages=True,
+                attach_files=True,
+                embed_links=True,
+            ),
+            interaction.user: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True,
+            ),
         }
-        if staff_role:
-            overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-        for role in ping_roles:
-            if role:
-                overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+        for role in ticket_roles:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True,
+                manage_messages=True,
+            )
 
         category = None
         ch = interaction.channel
@@ -475,15 +515,13 @@ class TicketCog(commands.Cog):
             rules_embed = self._embed_rules(category_key)
 
             pings = [interaction.user.mention]
-            if ping_roles:
-                pings.extend(r.mention for r in ping_roles if r)
-            elif staff_role:
-                pings.append(staff_role.mention)
+            pings.extend(role.mention for role in ticket_roles)
 
             await ticket_channel.send(
                 content=" ".join(pings),
                 embeds=[answers_embed, rules_embed],
                 view=TicketCloseView(self),
+                allowed_mentions=self._ticket_allowed_mentions(interaction.user, ticket_roles),
             )
 
             await interaction.followup.send(f"Ticket created: {ticket_channel.mention}", ephemeral=True)
@@ -522,12 +560,52 @@ class TicketCog(commands.Cog):
         channel = interaction.channel
         if not isinstance(channel, discord.TextChannel) or not self._is_ticket_channel(channel):
             return await interaction.response.send_message("This is not a ticket channel.", ephemeral=True)
+        if not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message("Use this in a server.", ephemeral=True)
+        if not self._can_manage_ticket(interaction.user, channel):
+            return await interaction.response.send_message("Only ticket staff or the ticket owner can close this ticket.", ephemeral=True)
 
         await interaction.response.defer(ephemeral=True, thinking=True)
         ok, msg = await self.send_transcript_to_logs(channel.guild, interaction.user, channel)
         if not ok:
             return await interaction.followup.send(msg, ephemeral=True)
         await channel.delete(reason=f"Ticket closed by {interaction.user}")
+
+    async def _add_or_remove_ticket_member(self, message: discord.Message, trigger, add: bool):
+        channel = message.channel
+        if not isinstance(channel, discord.TextChannel) or not self._is_ticket_channel(channel):
+            return await message.channel.send("This is not a ticket channel.")
+        if not self._can_manage_ticket(message.author, channel, allow_owner=False):
+            return await message.channel.send("Only ticket staff can add or remove users.")
+
+        target = trigger["target"]
+        if not target and trigger["target_id"]:
+            try:
+                target = await message.guild.fetch_member(trigger["target_id"])
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                target = None
+        if not target:
+            action = "addtoticket" if add else "removefromticket"
+            return await message.channel.send(f"Use `@Shorekeeper {action} @user_or_id`.")
+        if target.bot:
+            return await message.channel.send("Cannot add or remove bots from tickets.")
+
+        if add:
+            await channel.set_permissions(
+                target,
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True,
+                embed_links=True,
+            )
+            return await channel.send(f"{target.mention} has been added to this ticket.")
+
+        owner_id = self._ticket_owner_id_from_topic(channel)
+        if owner_id == target.id:
+            return await channel.send("You cannot remove the ticket owner.")
+        await channel.set_permissions(target, overwrite=None)
+        return await channel.send(f"{target.mention} has been removed from this ticket.")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -540,13 +618,17 @@ class TicketCog(commands.Cog):
             return
 
         keyword = trigger["keyword"]
-        if keyword not in {"transcripttk", "closeticket", "deletetk"}:
+        if keyword not in {"transcripttk", "closeticket", "deletetk", "addtoticket", "removefromticket"}:
             return
 
         channel: discord.TextChannel = message.channel
-        owner_id = self._ticket_owner_id_from_topic(channel)
-        is_owner = owner_id is not None and message.author.id == owner_id
-        privileged = is_mod(message.author) or is_owner_id(message.guild.id, message.author.id) or is_owner
+        privileged = self._can_manage_ticket(message.author, channel)
+
+        if keyword == "addtoticket":
+            return await self._add_or_remove_ticket_member(message, trigger, add=True)
+
+        if keyword == "removefromticket":
+            return await self._add_or_remove_ticket_member(message, trigger, add=False)
 
         if keyword == "transcripttk":
             if not privileged:
