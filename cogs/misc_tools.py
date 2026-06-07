@@ -20,6 +20,7 @@ class MiscToolsCog(commands.Cog):
         self.uwu_locks = self.db["uwu_locks"]
         self.afk = self.db["afk"]
         self.webhook_cache = {}
+        self.afk_notice_delete_after = 2
 
     async def cog_load(self):
         await self.bark_locks.create_index([("guild_id", 1), ("user_id", 1)], unique=True)
@@ -171,6 +172,7 @@ class MiscToolsCog(commands.Cog):
         await message.channel.send(
             f"{label} is AFK{suffix}: {reason}",
             allowed_mentions=discord.AllowedMentions.none(),
+            delete_after=self.afk_notice_delete_after,
         )
 
     @commands.Cog.listener()
@@ -197,13 +199,21 @@ class MiscToolsCog(commands.Cog):
                 upsert=True,
             )
             suffix = "" if nick_changed else " I could not change your nickname."
-            return await message.channel.send(f"{message.author.mention} is now AFK: {reason[:500]}{suffix}")
+            return await message.channel.send(
+                f"{message.author.mention} is now AFK: {reason[:500]}{suffix}",
+                allowed_mentions=discord.AllowedMentions.none(),
+                delete_after=self.afk_notice_delete_after,
+            )
 
         existing_afk = await self.afk.find_one({"guild_id": message.guild.id, "user_id": message.author.id})
         if existing_afk:
             await self._restore_afk_nick(message.author, existing_afk.get("original_nick"))
             await self.afk.delete_one({"guild_id": message.guild.id, "user_id": message.author.id})
-            await message.channel.send(f"Welcome back {message.author.mention}. I removed your AFK.")
+            await message.channel.send(
+                f"Welcome back {message.author.mention}. I removed your AFK.",
+                allowed_mentions=discord.AllowedMentions.none(),
+                delete_after=self.afk_notice_delete_after,
+            )
 
         mentioned_ids = {
             member.id
