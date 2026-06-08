@@ -116,7 +116,16 @@ class MyBot(commands.Bot):
 
     def _select_visible_commands(self, command_names):
         requested = {name.lower() for name in command_names}
-        core = {"help", "settings", "status", "enablecommands", "disablecommands"}
+        core = {
+            "help",
+            "settings",
+            "status",
+            "enablecommands",
+            "disablecommands",
+            "addserveradmin",
+            "removeserveradmin",
+            "serveradmins",
+        }
         visible = set(requested or core)
         selected = []
         for command in self._all_app_commands:
@@ -163,7 +172,16 @@ class MyBot(commands.Bot):
             for target in targets:
                 if target is None:
                     visible_names = self._set_visible_tree_commands(
-                        {"help", "settings", "status", "enablecommands", "disablecommands"}
+                        {
+                            "help",
+                            "settings",
+                            "status",
+                            "enablecommands",
+                            "disablecommands",
+                            "addserveradmin",
+                            "removeserveradmin",
+                            "serveradmins",
+                        }
                     )
                     synced = await self.tree.sync()
                     total_synced += len(synced)

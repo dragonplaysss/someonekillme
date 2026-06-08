@@ -13,7 +13,7 @@ from cogs.module_registry import (
     normalize_module_name,
     set_module_state,
 )
-from cogs.server_config import get_guild_config, is_admin, is_owner_id, update_guild_config
+from cogs.server_config import get_guild_config, is_owner_id, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -65,19 +65,20 @@ class ModuleManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def _can_manage_modules(self, user, guild):
+    async def _can_manage_owner_settings(self, user, guild):
         if not guild:
             return False
         if getattr(guild, "owner_id", None) == user.id:
             return True
         if is_owner_id(guild.id, user.id):
             return True
-        if isinstance(user, discord.Member) and is_admin(user):
-            return True
         try:
             return await self.bot.is_owner(user)
         except Exception:
             return False
+
+    async def _can_manage_modules(self, user, guild):
+        return await self._can_manage_owner_settings(user, guild)
 
     def _module_lines(self, guild):
         cfg = get_guild_config(guild.id)
@@ -127,6 +128,59 @@ class ModuleManager(commands.Cog):
     @app_commands.command(name="disablecommands", description="Hide a module's slash commands while keeping mention commands.")
     async def disablecommands(self, interaction: discord.Interaction, module: str):
         await self._set_module(interaction, module, "hidden")
+
+    @app_commands.command(name="addserveradmin", description="Allow a user to use server admin commands.")
+    async def addserveradmin(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.guild:
+            return await interaction.response.send_message("Use this in a server.", ephemeral=True)
+        if not await self._can_manage_owner_settings(interaction.user, interaction.guild):
+            return await interaction.response.send_message("No permission.", ephemeral=True)
+
+        def updater(config):
+            admins = config.setdefault("admin_ids", [])
+            if user.id not in admins:
+                admins.append(user.id)
+
+        update_guild_config(interaction.guild.id, updater)
+        await interaction.response.send_message(
+            f"{user.mention} can now use server admin commands.",
+            ephemeral=True,
+        )
+
+    @app_commands.command(name="removeserveradmin", description="Remove a user's server admin command access.")
+    async def removeserveradmin(self, interaction: discord.Interaction, user: discord.Member):
+        if not interaction.guild:
+            return await interaction.response.send_message("Use this in a server.", ephemeral=True)
+        if not await self._can_manage_owner_settings(interaction.user, interaction.guild):
+            return await interaction.response.send_message("No permission.", ephemeral=True)
+
+        def updater(config):
+            admins = config.setdefault("admin_ids", [])
+            if user.id in admins:
+                admins.remove(user.id)
+
+        update_guild_config(interaction.guild.id, updater)
+        await interaction.response.send_message(
+            f"{user.mention} can no longer use server admin commands.",
+            ephemeral=True,
+        )
+
+    @app_commands.command(name="serveradmins", description="List users with server admin command access.")
+    async def serveradmins(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message("Use this in a server.", ephemeral=True)
+        if not await self._can_manage_owner_settings(interaction.user, interaction.guild):
+            return await interaction.response.send_message("No permission.", ephemeral=True)
+
+        cfg = get_guild_config(interaction.guild.id)
+        admin_ids = sorted(set(cfg.get("admin_ids", [])))
+        lines = [f"- <@{user_id}> (`{user_id}`)" for user_id in admin_ids]
+        embed = discord.Embed(
+            title="Server Admins",
+            description="\n".join(lines) if lines else "No server admins configured.",
+            color=0x5865F2,
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="status", description="Show Shorekeeper module status.")
     async def status(self, interaction: discord.Interaction):

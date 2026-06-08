@@ -13,6 +13,7 @@ DEFAULT_CONFIG = {
 
 DEFAULT_GUILD = {
     "owner_ids": [PANEL_OWNER_ID],
+    "admin_ids": [],
     "admin_roles": [],
     "mod_roles": [],
     "verify_staff_roles": [],
@@ -162,10 +163,18 @@ def is_panel_owner(user_id):
 
 
 def is_admin(member):
-    if member.id == PANEL_OWNER_ID or member.guild_permissions.administrator:
+    if member.id == PANEL_OWNER_ID:
         return True
-    roles = set(get_role_ids(member.guild.id, "admin_roles"))
-    return any(role.id in roles for role in member.roles)
+    guild = getattr(member, "guild", None)
+    if not guild:
+        return False
+    if getattr(member.guild_permissions, "administrator", False):
+        return True
+    admin_ids = set(get_guild_config(guild.id).get("admin_ids", []))
+    if member.id in admin_ids:
+        return True
+    roles = set(get_role_ids(guild.id, "admin_roles"))
+    return any(role.id in roles for role in getattr(member, "roles", []))
 
 
 def is_mod(member):

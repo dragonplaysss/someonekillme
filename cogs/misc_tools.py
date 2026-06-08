@@ -34,6 +34,9 @@ class MiscToolsCog(commands.Cog):
     def _can_owner_admin(self, message: discord.Message):
         return is_admin(message.author) or is_owner_id(message.guild.id, message.author.id)
 
+    def _can_owner_only(self, message: discord.Message):
+        return is_owner_id(message.guild.id, message.author.id)
+
     def _format_role(self, guild: discord.Guild, role_id):
         role = guild.get_role(role_id) if role_id else None
         return role.mention if role else str(role_id) if role_id else "Not set"
@@ -274,6 +277,7 @@ class MiscToolsCog(commands.Cog):
         if keyword == "whoami":
             cfg = get_guild_config(message.guild.id)
             owner_ids = set(cfg.get("owner_ids", []))
+            admin_ids = set(cfg.get("admin_ids", []))
             admin_roles = set(cfg.get("admin_roles", []))
             mod_roles = set(cfg.get("mod_roles", []))
             my_role_ids = {role.id for role in message.author.roles}
@@ -288,6 +292,7 @@ class MiscToolsCog(commands.Cog):
                 value=(
                     f"admin_roles matched: `{len(my_role_ids & admin_roles)}`\n"
                     f"mod_roles matched: `{len(my_role_ids & mod_roles)}`\n"
+                    f"in admin_ids: `{message.author.id in admin_ids}`\n"
                     f"in owner_ids: `{message.author.id in owner_ids}`"
                 ),
                 inline=False,
@@ -313,6 +318,7 @@ class MiscToolsCog(commands.Cog):
                 name="Moderation Roles",
                 value=(
                     f"admin_roles: `{len(cfg.get('admin_roles', []))}`\n"
+                    f"admin_ids: `{len(cfg.get('admin_ids', []))}`\n"
                     f"mod_roles: `{len(cfg.get('mod_roles', []))}`"
                 ),
                 inline=False,
@@ -382,7 +388,7 @@ class MiscToolsCog(commands.Cog):
             return await message.channel.send(f"Updated verify/config setting: `{key}` -> `{value_id}`")
 
         if keyword == "owners":
-            if not self._can_owner_admin(message):
+            if not self._can_owner_only(message):
                 return await message.channel.send("No permission.")
             cfg = get_guild_config(message.guild.id)
             owner_ids = sorted(set(cfg.get("owner_ids", [])))
@@ -393,7 +399,7 @@ class MiscToolsCog(commands.Cog):
             )
 
         if keyword == "setowner":
-            if not self._can_owner_admin(message):
+            if not self._can_owner_only(message):
                 return await message.channel.send("No permission.")
             # @Shorekeeper setowner ; add|remove user_id_or_mention
             extra = (trigger["extra"] or "").strip()

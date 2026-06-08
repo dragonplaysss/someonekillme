@@ -1,6 +1,15 @@
 CORE_MODULE = "core"
 MODULE_STATES = {"active", "hidden", "disabled", "debug"}
-VISIBLE_CORE_COMMANDS = {"help", "settings", "status", "enablecommands", "disablecommands"}
+VISIBLE_CORE_COMMANDS = {
+    "help",
+    "settings",
+    "status",
+    "enablecommands",
+    "disablecommands",
+    "addserveradmin",
+    "removeserveradmin",
+    "serveradmins",
+}
 
 COMMAND_ALIASES = {
     "commands": "shorehelp",
@@ -36,7 +45,16 @@ COMMAND_ALIASES = {
 MODULES = {
     "core": {
         "extension": "cogs.module_manager",
-        "slash": ["help", "settings", "status", "enablecommands", "disablecommands"],
+        "slash": [
+            "help",
+            "settings",
+            "status",
+            "enablecommands",
+            "disablecommands",
+            "addserveradmin",
+            "removeserveradmin",
+            "serveradmins",
+        ],
         "mention": ["health", "module", "update", "resync", "shorehelp", "ping", "whoami", "config", "showconfig", "verifyconfig"],
     },
     "applications": {
@@ -55,6 +73,7 @@ MODULES = {
         "extension": "cogs.divisions",
         "slash": [
             "setupdivisions",
+            "removedivision",
             "setupdivisionregistry",
             "setdivisionrequestchannel",
             "diviupdatewbh",

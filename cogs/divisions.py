@@ -6,7 +6,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from cogs.server_config import is_panel_owner
+from cogs.server_config import is_admin, is_panel_owner
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -450,6 +450,8 @@ class Divisions(commands.Cog):
     def can_manage_division_request(self, member, division):
         if is_panel_owner(member.id):
             return True
+        if isinstance(member, discord.Member) and is_admin(member):
+            return True
         return division.get("leader_id") == member.id
 
     async def handle_request_decision(self, interaction, decision):
@@ -591,10 +593,12 @@ class Divisions(commands.Cog):
     async def require_panel_owner(self, interaction):
         if is_panel_owner(interaction.user.id):
             return True
+        if isinstance(interaction.user, discord.Member) and is_admin(interaction.user):
+            return True
 
         embed = self.make_embed(
             "No Permission",
-            "Only panel owners can use this command.",
+            "Only panel owners or server admins can use this command.",
             0xED4245,
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
