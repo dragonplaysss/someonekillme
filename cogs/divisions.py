@@ -652,6 +652,49 @@ class Divisions(commands.Cog):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="removedivision", description="Remove a configured division.")
+    async def removedivision(self, interaction: discord.Interaction, division_id: str):
+        if not await self.require_panel_owner(interaction):
+            return
+
+        if not interaction.guild:
+            embed = self.make_embed("Server Only", "Use this command in a server.", 0xED4245)
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        division_id = division_id.strip().lower()
+
+        data = load_data()
+        guild_data = get_guild_data(data, interaction.guild.id)
+        divisions = guild_data["divisions"]
+        division = divisions.get(division_id)
+        if not division:
+            embed = self.make_embed(
+                "Unknown Division",
+                f"`{division_id}` is not a configured division.",
+                0xED4245,
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True)
+
+        division_name = division.get("name", division_id)
+        del divisions[division_id]
+
+        division_requests = guild_data.setdefault("division_requests", {})
+        for request_id, request in list(division_requests.items()):
+            if request.get("division_id") == division_id and request.get("status") == "pending":
+                del division_requests[request_id]
+
+        save_data(data)
+        await self.update_registry_message(interaction.guild)
+
+        embed = self.make_embed(
+            "Division Removed",
+            f"**{division_name}** (`{division_id}`) was removed.",
+            0x57F287,
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
     @app_commands.command(name="setupdivisionregistry", description="Post or move the persistent division registry panel.")
     async def setupdivisionregistry(
         self,
