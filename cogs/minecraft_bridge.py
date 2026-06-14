@@ -26,6 +26,16 @@ ADVANCEMENT_RE = re.compile(r"\]: (.+?) has (?:made the advancement|completed th
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.\-*]{1,32}$")
 VERIFY_CODE_TTL = 600
 CHAT_WEBHOOK_NAME = "Shorekeeper Minecraft Chat"
+MINECRAFT_COMMANDS = ("mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo")
+
+mc_group = app_commands.Group(
+    name="mc",
+    description="Minecraft server bridge.",
+)
+mcsetup_group = app_commands.Group(
+    name="mcsetup",
+    description="Configure the Minecraft bridge.",
+)
 DEATH_HINTS = (
     " was slain by ",
     " was shot by ",
@@ -108,14 +118,8 @@ def _clean_discord_chat(message):
 
 
 class MinecraftBridge(commands.Cog):
-    mc = app_commands.Group(
-        name="mc",
-        description="Minecraft server bridge.",
-    )
-    mcsetup = app_commands.Group(
-        name="mcsetup",
-        description="Configure the Minecraft bridge.",
-    )
+    mc = mc_group
+    mcsetup = mcsetup_group
 
     def __init__(self, bot):
         self.bot = bot
@@ -502,7 +506,7 @@ class MinecraftBridge(commands.Cog):
             return
         self.last_status.setdefault(guild_id, {})["version"] = _clean_text(match.group(1), 80)
 
-    @mc.command(name="console", description="Send a command directly to the Minecraft console.")
+    @mc_group.command(name="console", description="Send a command directly to the Minecraft console.")
     async def mc_console(self, interaction: discord.Interaction, command: str):
         cfg = await self._require_enabled_owner(interaction)
         if not cfg:
@@ -514,7 +518,7 @@ class MinecraftBridge(commands.Cog):
             return await self._send_embed(interaction, "Console Command Failed", str(exc), 0xED4245)
         await self._send_embed(interaction, "Console Command Sent", f"`{_clean_text(command, 200)}`")
 
-    @mc.command(name="start", description="Start the Minecraft server screen session.")
+    @mc_group.command(name="start", description="Start the Minecraft server screen session.")
     async def mc_start(self, interaction: discord.Interaction):
         cfg = await self._require_enabled_owner(interaction)
         if not cfg:
@@ -527,7 +531,7 @@ class MinecraftBridge(commands.Cog):
             ok, message = False, str(exc)
         await interaction.followup.send(embed=self._embed("Minecraft Start", message, 0x57F287 if ok else 0xFEE75C), ephemeral=True)
 
-    @mc.command(name="stop", description="Stop the Minecraft server.")
+    @mc_group.command(name="stop", description="Stop the Minecraft server.")
     async def mc_stop(self, interaction: discord.Interaction):
         cfg = await self._require_enabled_owner(interaction)
         if not cfg:
@@ -539,7 +543,7 @@ class MinecraftBridge(commands.Cog):
             return await self._send_embed(interaction, "Minecraft Stop Failed", str(exc), 0xED4245)
         await self._send_embed(interaction, "Minecraft Stop", "`stop` was sent to the server.")
 
-    @mc.command(name="restart", description="Restart the Minecraft server.")
+    @mc_group.command(name="restart", description="Restart the Minecraft server.")
     async def mc_restart(self, interaction: discord.Interaction):
         cfg = await self._require_enabled_owner(interaction)
         if not cfg:
@@ -563,7 +567,7 @@ class MinecraftBridge(commands.Cog):
             ok, message = False, str(exc)
         await interaction.followup.send(embed=self._embed("Minecraft Restart", message, 0x57F287 if ok else 0xED4245), ephemeral=True)
 
-    @mc.command(name="status", description="Show Minecraft server status.")
+    @mc_group.command(name="status", description="Show Minecraft server status.")
     async def mc_status(self, interaction: discord.Interaction):
         cfg, error = self._enabled_config(interaction.guild)
         if error:
@@ -582,7 +586,7 @@ class MinecraftBridge(commands.Cog):
         embed.add_field(name="Uptime", value=uptime, inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @mc.command(name="players", description="Show currently known online Minecraft players.")
+    @mc_group.command(name="players", description="Show currently known online Minecraft players.")
     async def mc_players(self, interaction: discord.Interaction):
         cfg, error = self._enabled_config(interaction.guild)
         if error:
@@ -607,7 +611,7 @@ class MinecraftBridge(commands.Cog):
             embed.set_footer(text=f"{len(players) - 12} more player(s) not shown.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @mc.command(name="selftest", description="Run Minecraft bridge startup checks.")
+    @mc_group.command(name="selftest", description="Run Minecraft bridge startup checks.")
     async def mc_selftest(self, interaction: discord.Interaction):
         cfg = await self._require_enabled_owner(interaction)
         if not cfg:
@@ -723,7 +727,7 @@ class MinecraftBridge(commands.Cog):
         embed.add_field(name="Minecraft", value=f"`{username}`", inline=True)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @mcsetup.command(name="enable", description="Enable the Minecraft bridge.")
+    @mcsetup_group.command(name="enable", description="Enable the Minecraft bridge.")
     async def mcsetup_enable(self, interaction: discord.Interaction):
         if not await self._require_panel_owner(interaction):
             return
@@ -740,7 +744,7 @@ class MinecraftBridge(commands.Cog):
             return await interaction.followup.send(embed=self._embed("Minecraft Bridge Enabled", "Commands were synced for this server."), ephemeral=True)
         await self._send_embed(interaction, "Minecraft Bridge Enabled")
 
-    @mcsetup.command(name="disable", description="Disable the Minecraft bridge.")
+    @mcsetup_group.command(name="disable", description="Disable the Minecraft bridge.")
     async def mcsetup_disable(self, interaction: discord.Interaction):
         if not await self._require_panel_owner(interaction):
             return
@@ -752,7 +756,7 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(interaction.guild.id, updater)
         await self._send_embed(interaction, "Minecraft Bridge Disabled", "Log and chat relays will stop.")
 
-    @mcsetup.command(name="chatchannel", description="Set the Discord channel for Minecraft chat.")
+    @mcsetup_group.command(name="chatchannel", description="Set the Discord channel for Minecraft chat.")
     async def mcsetup_chatchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not await self._require_panel_owner(interaction):
             return
@@ -763,7 +767,7 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(interaction.guild.id, updater)
         await self._send_embed(interaction, "Minecraft Chat Channel", f"Chat relay set to {channel.mention}.")
 
-    @mcsetup.command(name="consolechannel", description="Set the Discord channel for Minecraft console events.")
+    @mcsetup_group.command(name="consolechannel", description="Set the Discord channel for Minecraft console events.")
     async def mcsetup_consolechannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not await self._require_panel_owner(interaction):
             return
@@ -774,7 +778,7 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(interaction.guild.id, updater)
         await self._send_embed(interaction, "Minecraft Console Channel", f"Console events set to {channel.mention}.")
 
-    @mcsetup.command(name="screen", description="Set the Linux screen session name.")
+    @mcsetup_group.command(name="screen", description="Set the Linux screen session name.")
     async def mcsetup_screen(self, interaction: discord.Interaction, screen_name: str):
         if not await self._require_panel_owner(interaction):
             return
@@ -789,7 +793,7 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(interaction.guild.id, updater)
         await self._send_embed(interaction, "Minecraft Screen", f"Screen session set to `{clean_name}`.")
 
-    @mcsetup.command(name="directory", description="Set the Minecraft server directory.")
+    @mcsetup_group.command(name="directory", description="Set the Minecraft server directory.")
     async def mcsetup_directory(self, interaction: discord.Interaction, server_directory: str):
         if not await self._require_panel_owner(interaction):
             return
@@ -803,7 +807,7 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(interaction.guild.id, updater)
         await self._send_embed(interaction, "Minecraft Directory", f"Server directory set to `{clean_directory}`.")
 
-    @mcsetup.command(name="verifiedrole", description="Set the role given after Minecraft verification.")
+    @mcsetup_group.command(name="verifiedrole", description="Set the role given after Minecraft verification.")
     async def mcsetup_verifiedrole(self, interaction: discord.Interaction, role: discord.Role = None):
         if not await self._require_panel_owner(interaction):
             return
@@ -1247,16 +1251,98 @@ class MinecraftBridge(commands.Cog):
             return
 
 
+def _command_tree_names(bot):
+    return {command.name for command in bot.tree.get_commands()}
+
+
+def _print_tree_diagnostics(bot, label):
+    commands = list(bot.tree.get_commands())
+    print(f"[MinecraftBridge setup] {label} bot.tree.get_commands() count={len(commands)}")
+    for command in sorted(commands, key=lambda item: item.name):
+        children = list(getattr(command, "commands", []) or [])
+        if children:
+            child_names = ", ".join(child.name for child in children)
+            print(f"  [group] /{command.name} ({len(children)}): {child_names}")
+        else:
+            print(f"  [cmd]   /{command.name}")
+    if not commands:
+        print("  (none)")
+    return commands
+
+
+def _ensure_tree_command(bot, command):
+    if command.name in _command_tree_names(bot):
+        return "present"
+    try:
+        bot.tree.add_command(command)
+        return "added"
+    except discord.app_commands.CommandAlreadyRegistered:
+        return "already-registered"
+    except Exception as exc:
+        print(f"[MinecraftBridge setup] add_command /{command.name} failed: {type(exc).__name__}: {exc}")
+        return "failed"
+
+
 async def setup(bot):
     cog = MinecraftBridge(bot)
     await bot.add_cog(cog)
-    mc_cmds = sorted(child.name for child in getattr(cog.mc, "commands", []))
-    setup_cmds = sorted(child.name for child in getattr(cog.mcsetup, "commands", []))
-    _log(
-        "cog loaded "
-        f"groups=mc({len(mc_cmds)}),mcsetup({len(setup_cmds)}) "
-        f"standalone=mcverify,unlinkmc,mclinkinfo "
-        f"guild={MINECRAFT_GUILD_ID}"
+
+    print("[MinecraftBridge setup] cog.__cog_app_commands__:")
+    cog_commands = list(getattr(cog, "__cog_app_commands__", []) or [])
+    class_commands = list(getattr(MinecraftBridge, "__cog_app_commands__", []) or [])
+    if cog_commands:
+        for command in cog_commands:
+            children = list(getattr(command, "commands", []) or [])
+            if children:
+                print(f"  [group] {command.name} ({len(children)} subcommands)")
+            else:
+                print(f"  [cmd]   {command.name}")
+    else:
+        print("  (empty on instance)")
+    if class_commands and not cog_commands:
+        print("[MinecraftBridge setup] using class-level __cog_app_commands__ fallback:")
+        for command in class_commands:
+            children = list(getattr(command, "commands", []) or [])
+            if children:
+                print(f"  [group] {command.name} ({len(children)} subcommands)")
+            else:
+                print(f"  [cmd]   {command.name}")
+        cog_commands = class_commands
+
+    print(
+        "[MinecraftBridge setup] module groups: "
+        f"mc={len(list(mc_group.commands))} subcommands, "
+        f"mcsetup={len(list(mcsetup_group.commands))} subcommands"
     )
-    _log(f"mc subcommands: {', '.join(mc_cmds) or 'none'}")
-    _log(f"mcsetup subcommands: {', '.join(setup_cmds) or 'none'}")
+
+    _print_tree_diagnostics(bot, "after add_cog")
+
+    candidates = []
+    seen = set()
+    for command in cog_commands:
+        if command.name not in seen:
+            candidates.append(command)
+            seen.add(command.name)
+    for command in (mc_group, mcsetup_group):
+        if command.name not in seen:
+            candidates.append(command)
+            seen.add(command.name)
+
+    for command in candidates:
+        result = _ensure_tree_command(bot, command)
+        print(f"[MinecraftBridge setup] register /{command.name}: {result}")
+
+    _print_tree_diagnostics(bot, "after explicit registration")
+
+    tree_names = _command_tree_names(bot)
+    missing = [name for name in MINECRAFT_COMMANDS if name not in tree_names]
+    if missing:
+        print(f"[MinecraftBridge setup] ERROR missing from bot.tree: {', '.join(missing)}")
+    else:
+        print("[MinecraftBridge setup] OK all minecraft commands present in bot.tree")
+
+    for command in bot.tree.get_commands():
+        if command.name in MINECRAFT_COMMANDS:
+            children = list(getattr(command, "commands", []) or [])
+            if children:
+                print(f"[MinecraftBridge setup] /{command.name} children: {', '.join(child.name for child in children)}")

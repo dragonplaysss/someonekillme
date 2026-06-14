@@ -116,14 +116,24 @@ class MyBot(commands.Bot):
         all_known = self._all_known_commands()
         groups, standalone = self._flatten_commands(all_known)
         self.slash_health["registered"] = len(all_known)
+        print("[SLASH REGISTERED]")
+        for command in all_known:
+            print(f"  {self._command_label(command)}")
         print("Registered command groups:")
         for command in groups:
             print(f"  {self._command_label(command)}")
         print("Registered commands:")
         for command in standalone:
             print(f"  {command.name}")
-        if not groups and not standalone:
+        if not all_known:
             print("  (none)")
+        minecraft_names = {"mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo"}
+        found_mc = {getattr(command, "name", "").lower() for command in all_known}
+        missing_mc = sorted(name for name in minecraft_names if name not in found_mc)
+        if missing_mc:
+            print(f"[SLASH REGISTERED] WARNING missing minecraft commands: {', '.join(missing_mc)}")
+        else:
+            print("[SLASH REGISTERED] minecraft commands: mc, mcsetup, mcverify, unlinkmc, mclinkinfo")
 
     def _all_known_commands(self, guild_id=None):
         commands_by_name = {}
