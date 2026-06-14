@@ -113,6 +113,22 @@ class MyBot(commands.Bot):
             guild = discord.Object(id=guild_id)
             self._guild_app_commands[guild_id] = list(self.tree.get_commands(guild=guild))
 
+        for command in self._all_app_commands:
+            for bound_guild_id in getattr(command, "_guild_ids", None) or []:
+                guild_ids.add(int(bound_guild_id))
+        for commands_for_guild in self._guild_app_commands.values():
+            for command in commands_for_guild:
+                for bound_guild_id in getattr(command, "_guild_ids", None) or []:
+                    guild_ids.add(int(bound_guild_id))
+        if guild_ids - set(self._guild_app_commands):
+            for guild_id in sorted(guild_ids):
+                if guild_id in self._guild_app_commands:
+                    continue
+                guild = discord.Object(id=guild_id)
+                self._guild_app_commands[guild_id] = list(self.tree.get_commands(guild=guild))
+
+        self._log_tree_state("before sync snapshot")
+
         all_known = self._all_known_commands()
         groups, standalone = self._flatten_commands(all_known)
         self.slash_health["registered"] = len(all_known)
@@ -135,6 +151,11 @@ class MyBot(commands.Bot):
         else:
             print("[SLASH REGISTERED] minecraft commands: mc, mcsetup, mcverify, unlinkmc, mclinkinfo")
 
+        minecraft_guild_cmds = self._guild_app_commands.get(MINECRAFT_GUILD_ID, [])
+        print(f"[SLASH REGISTERED] minecraft guild tree count={len(minecraft_guild_cmds)}")
+        for command in minecraft_guild_cmds:
+            print(f"  guild-tree {self._command_label(command)}")
+
     def _all_known_commands(self, guild_id=None):
         commands_by_name = {}
         for command in self._all_app_commands:
@@ -155,6 +176,16 @@ class MyBot(commands.Bot):
             child_names = ", ".join(child.name for child in children)
             return f"{name} ({child_names})"
         return name
+
+    def _log_tree_state(self, label):
+        print(f"[SLASH TREE] {label}")
+        global_cmds = list(self.tree.get_commands())
+        print(f"  global count={len(global_cmds)} names={', '.join(cmd.name for cmd in global_cmds) or '(none)'}")
+        minecraft_guild_cmds = list(self.tree.get_commands(guild=discord.Object(id=MINECRAFT_GUILD_ID)))
+        print(
+            f"  guild {MINECRAFT_GUILD_ID} count={len(minecraft_guild_cmds)} "
+            f"names={', '.join(cmd.name for cmd in minecraft_guild_cmds) or '(none)'}"
+        )
 
     def _set_visible_tree_commands(self, command_names, guild_id=None):
         if not self._all_app_commands and not self._guild_app_commands:
@@ -287,6 +318,14 @@ class MyBot(commands.Bot):
                 synced = await self.tree.sync(guild=target)
                 total_synced += len(synced)
                 print(f"Guild sync result: guild={target.id} reason={reason} visible={len(visible_names)} synced={len(synced)}")
+                if target.id == MINECRAFT_GUILD_ID:
+                    synced_names = {command.name for command in synced}
+                    minecraft_names = {"mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo"}
+                    missing = sorted(minecraft_names - synced_names)
+                    if missing:
+                        print(f"[SLASH SYNC] WARNING minecraft guild missing synced commands: {', '.join(missing)}")
+                    else:
+                        print("[SLASH SYNC] minecraft guild commands synced: mc, mcsetup, mcverify, unlinkmc, mclinkinfo")
                 self._log_synced_commands(synced, f"guild {target.id}", reason, visible_names)
         except Exception as e:
             print(f"[SLASH SYNC FAILED] {type(e).__name__}: {e}")
@@ -298,6 +337,7 @@ class MyBot(commands.Bot):
                 f"visible={self.slash_health['visible']} "
                 f"synced={self.slash_health['synced']}"
             )
+            self._log_tree_state("after sync")
             self._restore_tree_commands()
 
         return total_synced

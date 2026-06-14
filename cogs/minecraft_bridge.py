@@ -28,13 +28,17 @@ VERIFY_CODE_TTL = 600
 CHAT_WEBHOOK_NAME = "Shorekeeper Minecraft Chat"
 MINECRAFT_COMMANDS = ("mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo")
 
+MINECRAFT_GUILD = discord.Object(id=MINECRAFT_GUILD_ID)
+
 mc_group = app_commands.Group(
     name="mc",
     description="Minecraft server bridge.",
+    guild_ids=[MINECRAFT_GUILD_ID],
 )
 mcsetup_group = app_commands.Group(
     name="mcsetup",
     description="Configure the Minecraft bridge.",
+    guild_ids=[MINECRAFT_GUILD_ID],
 )
 DEATH_HINTS = (
     " was slain by ",
@@ -160,7 +164,10 @@ class MinecraftBridge(commands.Cog):
         configured = _clean_text(cfg.get("server_directory"), 300)
         if not configured:
             configured = _default_minecraft_value("server_directory")
-        return Path(configured).expanduser()
+        path = Path(configured).expanduser()
+        if not path.is_absolute() and configured.startswith("/"):
+            path = Path(configured)
+        return path
 
     def _autodetect_server_directory(self, cfg):
         candidates = []
@@ -204,8 +211,14 @@ class MinecraftBridge(commands.Cog):
     def _latest_log_path(self, cfg):
         return self._server_directory(cfg) / "logs" / "latest.log"
 
+    def _normalize_log_username(self, username):
+        clean = _clean_text(username, 32)
+        if clean.startswith(".") and len(clean) > 1:
+            _log(f"detected floodgate/bedrock username format: {clean}")
+        return clean
+
     def _username_key(self, username):
-        return _clean_text(username, 32).lower()
+        return self._normalize_log_username(username).lower()
 
     def _avatar_url(self, username):
         clean = _clean_text(username, 32).lstrip(".")
@@ -632,7 +645,11 @@ class MinecraftBridge(commands.Cog):
             ephemeral=True,
         )
 
-    @app_commands.command(name="mcverify", description="Verify your Minecraft account with a Shorekeeper code.")
+    @app_commands.command(
+        name="mcverify",
+        description="Verify your Minecraft account with a Shorekeeper code.",
+    )
+    @app_commands.guilds(MINECRAFT_GUILD_ID)
     async def mcverify(self, interaction: discord.Interaction, code: str):
         cfg, error = self._enabled_config(interaction.guild)
         if error:
@@ -678,7 +695,7 @@ class MinecraftBridge(commands.Cog):
             }
             pending.pop(verify_code, None)
             result.update({"ok": True, "username": username, "message": f"`{username}` is now linked to your Discord account."})
-            _log(f"verification success guild={interaction.guild.id} username={username} discord={interaction.user.id}")
+            _log(f"verification stage=success guild={interaction.guild.id} username={username} discord={interaction.user.id}")
 
         update_guild_config(interaction.guild.id, updater)
         if result["ok"]:
@@ -686,7 +703,11 @@ class MinecraftBridge(commands.Cog):
         color = 0x57F287 if result["ok"] else 0xED4245
         await self._send_embed(interaction, "Minecraft Verification", result["message"], color)
 
-    @app_commands.command(name="unlinkmc", description="Unlink your Minecraft account.")
+    @app_commands.command(
+        name="unlinkmc",
+        description="Unlink your Minecraft account.",
+    )
+    @app_commands.guilds(MINECRAFT_GUILD_ID)
     async def unlinkmc(self, interaction: discord.Interaction, user: discord.Member = None):
         if not interaction.guild:
             return await interaction.response.send_message("Use this in a server.", ephemeral=True)
@@ -709,7 +730,11 @@ class MinecraftBridge(commands.Cog):
             return await self._send_embed(interaction, "Minecraft Link Removed", f"`{removed['name']}` is no longer linked to {target.mention}.")
         await self._send_embed(interaction, "Minecraft Link", f"{target.mention} has no Minecraft link.", 0xFEE75C)
 
-    @app_commands.command(name="mclinkinfo", description="Show your Minecraft link.")
+    @app_commands.command(
+        name="mclinkinfo",
+        description="Show your Minecraft link.",
+    )
+    @app_commands.guilds(MINECRAFT_GUILD_ID)
     async def mclinkinfo(self, interaction: discord.Interaction, user: discord.Member = None):
         if not interaction.guild:
             return await interaction.response.send_message("Use this in a server.", ephemeral=True)
@@ -1040,7 +1065,13 @@ class MinecraftBridge(commands.Cog):
         rotated = state.get("path") != path or state.get("signature") != signature or stat.st_size < state.get("pos", 0)
         if rotated:
             _log(f"log rotation/reconnect detected guild={guild_id} path={path}")
-            state.update({"path": path, "pos": 0, "stamp": stat.st_mtime, "signature": signature})
+            state.update({
+                "path": path,
+                "pos": 0,
+                "stamp": stat.st_mtime,
+                "signature": signature,
+                "bootstrap_verified": False,
+            })
         if stat.st_size == state.get("pos", 0):
             return
 
@@ -1062,20 +1093,23 @@ class MinecraftBridge(commands.Cog):
             return
         list_match = LIST_RE.search(line)
         if list_match:
-            names = [name.strip() for name in list_match.group(2).split(",") if name.strip()]
+            names = [self._normalize_log_username(name.strip()) for name in list_match.group(2).split(",") if name.strip()]
             self.players[guild_id] = set(names)
             _log(f"player list updated guild={guild_id} count={len(names)}")
-            if announce:
+            state = self.log_state.get(guild_id) or {}
+            if announce and not state.get("bootstrap_verified"):
+                state["bootstrap_verified"] = True
+                self.log_state[guild_id] = state
                 for name in names:
-                    clean_name = _clean_text(name, 32)
-                    if clean_name and not self._linked_record(guild_id, clean_name):
-                        await self._start_verification(guild_id, cfg, clean_name)
+                    if name and not self._linked_record(guild_id, name):
+                        _log(f"bootstrap verification for online player guild={guild_id} player={name}")
+                        await self._start_verification(guild_id, cfg, name)
             return
 
         self._update_version_from_line(guild_id, line)
         chat_match = CHAT_RE.search(line)
         if chat_match:
-            player = _clean_text(chat_match.group(1), 32)
+            player = self._normalize_log_username(chat_match.group(1))
             message = _clean_text(chat_match.group(2), 1500)
             if player and message:
                 self.players.setdefault(guild_id, set()).add(player)
@@ -1089,8 +1123,7 @@ class MinecraftBridge(commands.Cog):
     async def _handle_event_line(self, guild_id, line, cfg, announce=True):
         event_match = PLAYER_EVENT_RE.search(line)
         if event_match:
-            player, action = event_match.groups()
-            player = _clean_text(player, 32)
+            player, action = self._normalize_log_username(event_match.group(1)), event_match.group(2)
             if action == "joined":
                 _log(f"player joined guild={guild_id} player={player} linked={bool(self._linked_record(guild_id, player))}")
                 self.players.setdefault(guild_id, set()).add(player)
@@ -1133,7 +1166,7 @@ class MinecraftBridge(commands.Cog):
             return
 
     async def _start_verification(self, guild_id, cfg, username):
-        username = _clean_text(username, 32)
+        username = self._normalize_log_username(username)
         if not username:
             _log(f"verification skipped empty username guild={guild_id}")
             return
@@ -1143,7 +1176,7 @@ class MinecraftBridge(commands.Cog):
         if not USERNAME_RE.fullmatch(username):
             _log(f"verification skipped unsupported username={username}")
             return
-        _log(f"verification starting guild={guild_id} username={username}")
+        _log(f"verification stage=begin guild={guild_id} username={username}")
         code_holder = {"code": None, "created": False}
 
         def updater(config):
@@ -1155,6 +1188,7 @@ class MinecraftBridge(commands.Cog):
             for existing_code, record in pending.items():
                 if self._username_key(record.get("username")) == self._username_key(username):
                     code_holder["code"] = existing_code
+                    _log(f"verification stage=reuse-pending guild={guild_id} username={username} code={existing_code}")
                     return
             code = self._new_verification_code(pending)
             pending[code] = {
@@ -1163,26 +1197,31 @@ class MinecraftBridge(commands.Cog):
                 "created_at": time.time(),
             }
             code_holder.update({"code": code, "created": True})
+            _log(f"verification stage=code-created guild={guild_id} username={username} code={code}")
 
         update_guild_config(guild_id, updater)
         code = code_holder["code"]
         if not code:
-            _log(f"verification could not create code guild={guild_id} username={username}")
+            _log(f"verification stage=failed guild={guild_id} username={username} reason=no-code")
             return
-        _log(f"verification code ready guild={guild_id} username={username} created={code_holder['created']} code={code}")
-        reason = f"Shorekeeper Verification Required\n\nCode: {code}\n\nRun:\n/mcverify {code}"
+        if not code_holder["created"]:
+            _log(f"verification stage=skip-kick guild={guild_id} username={username} code={code} reason=pending-exists")
+            return
+        reason = (
+            f"Shorekeeper verification required. Code: {code}. "
+            f"Run /mcverify {code} in Discord, then rejoin."
+        )
         try:
-            await self._send_to_screen(cfg, f'kick {username} {reason}')
-            _log(f"verification kick sent guild={guild_id} username={username} code={code}")
+            await self._send_to_screen(cfg, f"kick {username} {reason}")
+            _log(f"verification stage=kick-sent guild={guild_id} username={username} code={code}")
         except Exception as exc:
-            _log(f"verification kick failed guild={guild_id} username={username}: {type(exc).__name__}: {exc}")
+            _log(f"verification stage=kick-failed guild={guild_id} username={username}: {type(exc).__name__}: {exc}")
             return
-        if code_holder["created"]:
-            await self._send_channel(
-                guild_id,
-                cfg.get("console_channel"),
-                f"`{username}` needs verification. A 10-minute code was shown in-game.",
-            )
+        await self._send_channel(
+            guild_id,
+            cfg.get("console_channel"),
+            f"`{username}` needs verification. Code `{code}` was sent in-game (10 minutes).",
+        )
 
     async def _request_player_list(self, guild_id, cfg):
         try:
@@ -1251,13 +1290,16 @@ class MinecraftBridge(commands.Cog):
             return
 
 
-def _command_tree_names(bot):
-    return {command.name for command in bot.tree.get_commands()}
+def _command_tree_names(bot, guild=None):
+    if guild is None:
+        return {command.name for command in bot.tree.get_commands()}
+    return {command.name for command in bot.tree.get_commands(guild=guild)}
 
 
-def _print_tree_diagnostics(bot, label):
-    commands = list(bot.tree.get_commands())
-    print(f"[MinecraftBridge setup] {label} bot.tree.get_commands() count={len(commands)}")
+def _print_tree_diagnostics(bot, label, guild=None):
+    commands = list(bot.tree.get_commands(guild=guild))
+    scope = f"guild={guild.id}" if guild is not None else "global"
+    print(f"[MinecraftBridge setup] {label} {scope} bot.tree.get_commands() count={len(commands)}")
     for command in sorted(commands, key=lambda item: item.name):
         children = list(getattr(command, "commands", []) or [])
         if children:
@@ -1270,20 +1312,38 @@ def _print_tree_diagnostics(bot, label):
     return commands
 
 
-def _ensure_tree_command(bot, command):
-    if command.name in _command_tree_names(bot):
+def _ensure_tree_command(bot, command, guild=None):
+    names = _command_tree_names(bot, guild=guild)
+    if command.name in names:
         return "present"
     try:
-        bot.tree.add_command(command)
+        if guild is None:
+            bot.tree.add_command(command)
+        else:
+            bot.tree.add_command(command, guild=guild)
         return "added"
     except discord.app_commands.CommandAlreadyRegistered:
         return "already-registered"
     except Exception as exc:
-        print(f"[MinecraftBridge setup] add_command /{command.name} failed: {type(exc).__name__}: {exc}")
+        scope = f"guild={guild.id}" if guild is not None else "global"
+        print(f"[MinecraftBridge setup] add_command /{command.name} {scope} failed: {type(exc).__name__}: {exc}")
         return "failed"
 
 
+def _bootstrap_minecraft_guild():
+    def updater(config):
+        config.setdefault("modules", {})["minecraft"] = "active"
+        minecraft = config.setdefault("minecraft", _minecraft_defaults())
+        for key, value in _minecraft_defaults().items():
+            minecraft.setdefault(key, value)
+        minecraft["enabled"] = True
+
+    update_guild_config(MINECRAFT_GUILD_ID, updater)
+    _log(f"bootstrapped minecraft guild config guild={MINECRAFT_GUILD_ID}")
+
+
 async def setup(bot):
+    _bootstrap_minecraft_guild()
     cog = MinecraftBridge(bot)
     await bot.add_cog(cog)
 
@@ -1315,7 +1375,8 @@ async def setup(bot):
         f"mcsetup={len(list(mcsetup_group.commands))} subcommands"
     )
 
-    _print_tree_diagnostics(bot, "after add_cog")
+    _print_tree_diagnostics(bot, "after add_cog", guild=MINECRAFT_GUILD)
+    _print_tree_diagnostics(bot, "after add_cog", guild=None)
 
     candidates = []
     seen = set()
@@ -1329,19 +1390,19 @@ async def setup(bot):
             seen.add(command.name)
 
     for command in candidates:
-        result = _ensure_tree_command(bot, command)
-        print(f"[MinecraftBridge setup] register /{command.name}: {result}")
+        result = _ensure_tree_command(bot, command, guild=MINECRAFT_GUILD)
+        print(f"[MinecraftBridge setup] register /{command.name} guild={MINECRAFT_GUILD_ID}: {result}")
 
-    _print_tree_diagnostics(bot, "after explicit registration")
+    _print_tree_diagnostics(bot, "after explicit guild registration", guild=MINECRAFT_GUILD)
 
-    tree_names = _command_tree_names(bot)
-    missing = [name for name in MINECRAFT_COMMANDS if name not in tree_names]
+    guild_names = _command_tree_names(bot, guild=MINECRAFT_GUILD)
+    missing = [name for name in MINECRAFT_COMMANDS if name not in guild_names]
     if missing:
-        print(f"[MinecraftBridge setup] ERROR missing from bot.tree: {', '.join(missing)}")
+        print(f"[MinecraftBridge setup] ERROR missing from guild tree: {', '.join(missing)}")
     else:
-        print("[MinecraftBridge setup] OK all minecraft commands present in bot.tree")
+        print(f"[MinecraftBridge setup] OK all minecraft commands present in guild={MINECRAFT_GUILD_ID} tree")
 
-    for command in bot.tree.get_commands():
+    for command in bot.tree.get_commands(guild=MINECRAFT_GUILD):
         if command.name in MINECRAFT_COMMANDS:
             children = list(getattr(command, "commands", []) or [])
             if children:
