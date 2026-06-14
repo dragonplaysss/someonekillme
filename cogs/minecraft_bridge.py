@@ -23,7 +23,7 @@ CHAT_RE = re.compile(r"\]: <([^>]+)> (.*)$")
 LIST_RE = re.compile(r"There are (\d+) of a max of \d+ players online: ?(.*)$")
 PLAYER_EVENT_RE = re.compile(r"\]: (.+?) (joined|left) the game$")
 ADVANCEMENT_RE = re.compile(r"\]: (.+?) has (?:made the advancement|completed the challenge|reached the goal) \[(.+)]$")
-USERNAME_RE = re.compile(r"^[A-Za-z0-9_.]{1,32}$")
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_.\-*]{1,32}$")
 VERIFY_CODE_TTL = 600
 CHAT_WEBHOOK_NAME = "Shorekeeper Minecraft Chat"
 DEATH_HINTS = (
@@ -111,12 +111,10 @@ class MinecraftBridge(commands.Cog):
     mc = app_commands.Group(
         name="mc",
         description="Minecraft server bridge.",
-        guild_ids=[MINECRAFT_GUILD_ID],
     )
     mcsetup = app_commands.Group(
         name="mcsetup",
         description="Configure the Minecraft bridge.",
-        guild_ids=[MINECRAFT_GUILD_ID],
     )
 
     def __init__(self, bot):
@@ -159,6 +157,45 @@ class MinecraftBridge(commands.Cog):
         if not configured:
             configured = _default_minecraft_value("server_directory")
         return Path(configured).expanduser()
+
+    def _autodetect_server_directory(self, cfg):
+        candidates = []
+        configured = _clean_text(cfg.get("server_directory"), 300)
+        if configured:
+            candidates.append(configured)
+        candidates.extend([
+            "/home/ubuntu/minecraft",
+            str(Path.home() / "minecraft"),
+        ])
+        seen = set()
+        for candidate in candidates:
+            clean = _clean_text(candidate, 300)
+            if not clean or clean in seen:
+                continue
+            seen.add(clean)
+            path = Path(clean).expanduser()
+            latest = path / "logs" / "latest.log"
+            if latest.is_file():
+                _log(f"auto-detected server directory: {path}")
+                return path
+            if path.is_dir() and (path / "logs").is_dir():
+                _log(f"auto-detected server directory (logs dir): {path}")
+                return path
+        return self._server_directory(cfg)
+
+    def _apply_autodetected_paths(self, guild_id, cfg):
+        detected_dir = self._autodetect_server_directory(cfg)
+        current_dir = self._server_directory(cfg)
+        if str(detected_dir) == str(current_dir):
+            return cfg
+
+        def updater(config):
+            minecraft = config.setdefault("minecraft", _minecraft_defaults())
+            minecraft["server_directory"] = str(detected_dir)
+
+        update_guild_config(guild_id, updater)
+        _log(f"updated server directory guild={guild_id} path={detected_dir}")
+        return self._minecraft_config(guild_id)
 
     def _latest_log_path(self, cfg):
         return self._server_directory(cfg) / "logs" / "latest.log"
@@ -591,7 +628,6 @@ class MinecraftBridge(commands.Cog):
             ephemeral=True,
         )
 
-    @app_commands.guilds(MINECRAFT_GUILD_ID)
     @app_commands.command(name="mcverify", description="Verify your Minecraft account with a Shorekeeper code.")
     async def mcverify(self, interaction: discord.Interaction, code: str):
         cfg, error = self._enabled_config(interaction.guild)
@@ -646,7 +682,6 @@ class MinecraftBridge(commands.Cog):
         color = 0x57F287 if result["ok"] else 0xED4245
         await self._send_embed(interaction, "Minecraft Verification", result["message"], color)
 
-    @app_commands.guilds(MINECRAFT_GUILD_ID)
     @app_commands.command(name="unlinkmc", description="Unlink your Minecraft account.")
     async def unlinkmc(self, interaction: discord.Interaction, user: discord.Member = None):
         if not interaction.guild:
@@ -670,7 +705,6 @@ class MinecraftBridge(commands.Cog):
             return await self._send_embed(interaction, "Minecraft Link Removed", f"`{removed['name']}` is no longer linked to {target.mention}.")
         await self._send_embed(interaction, "Minecraft Link", f"{target.mention} has no Minecraft link.", 0xFEE75C)
 
-    @app_commands.guilds(MINECRAFT_GUILD_ID)
     @app_commands.command(name="mclinkinfo", description="Show your Minecraft link.")
     async def mclinkinfo(self, interaction: discord.Interaction, user: discord.Member = None):
         if not interaction.guild:
@@ -783,7 +817,7 @@ class MinecraftBridge(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot or not message.guild:
+        if message.author.bot or message.webhook_id is not None or not message.guild:
             return
         if message.guild.id != MINECRAFT_GUILD_ID:
             return
@@ -823,6 +857,19 @@ class MinecraftBridge(commands.Cog):
 
     async def _startup_selftest(self):
         cfg = self._minecraft_config(MINECRAFT_GUILD_ID)
+        cfg = self._apply_autodetected_paths(MINECRAFT_GUILD_ID, cfg)
+        screens = await self._available_screens()
+        if screens:
+            configured = _clean_screen_name(cfg.get("screen_name") or _default_minecraft_value("screen_name"))
+            if configured not in screens and len(screens) == 1:
+                detected = screens[0]
+                _log(f"auto-detected screen session: {detected} (configured={configured})")
+
+                def updater(config):
+                    config.setdefault("minecraft", _minecraft_defaults())["screen_name"] = detected
+
+                update_guild_config(MINECRAFT_GUILD_ID, updater)
+                cfg = self._minecraft_config(MINECRAFT_GUILD_ID)
         checks = await self._run_selftest(MINECRAFT_GUILD_ID, cfg, inject_command=True)
         failed = [check for check in checks if not check["ok"]]
         if failed:
@@ -941,9 +988,15 @@ class MinecraftBridge(commands.Cog):
             minecraft = guild_config.get("minecraft") or {}
             if not minecraft.get("enabled", True):
                 continue
+            minecraft = self._apply_autodetected_paths(guild_id, minecraft)
             if self._has_expired_codes(minecraft):
                 self._expire_codes(guild_id)
             latest_log = self._latest_log_path(minecraft)
+            if guild_id in self.log_state:
+                state = self.log_state[guild_id]
+                if state.get("path") != latest_log:
+                    _log(f"log path changed guild={guild_id} old={state.get('path')} new={latest_log}")
+                    self.log_state.pop(guild_id, None)
             await self._poll_log(guild_id, latest_log, minecraft)
 
     def _has_expired_codes(self, minecraft):
@@ -1076,9 +1129,17 @@ class MinecraftBridge(commands.Cog):
             return
 
     async def _start_verification(self, guild_id, cfg, username):
+        username = _clean_text(username, 32)
+        if not username:
+            _log(f"verification skipped empty username guild={guild_id}")
+            return
+        if self._linked_record(guild_id, username):
+            _log(f"verification skipped already-linked guild={guild_id} username={username}")
+            return
         if not USERNAME_RE.fullmatch(username):
             _log(f"verification skipped unsupported username={username}")
             return
+        _log(f"verification starting guild={guild_id} username={username}")
         code_holder = {"code": None, "created": False}
 
         def updater(config):
@@ -1105,15 +1166,12 @@ class MinecraftBridge(commands.Cog):
             _log(f"verification could not create code guild={guild_id} username={username}")
             return
         _log(f"verification code ready guild={guild_id} username={username} created={code_holder['created']} code={code}")
-        reason = (
-            "Shorekeeper Verification Required"
-            f"\\n\\nCode: {code}"
-            f"\\n\\nRun:\\n/mcverify {code}"
-        )
+        reason = f"Shorekeeper Verification Required\n\nCode: {code}\n\nRun:\n/mcverify {code}"
         try:
-            await self._send_to_screen(cfg, f"kick {username} {reason}")
+            await self._send_to_screen(cfg, f'kick {username} {reason}')
+            _log(f"verification kick sent guild={guild_id} username={username} code={code}")
         except Exception as exc:
-            _log(f"verification kick failed for {username}: {type(exc).__name__}: {exc}")
+            _log(f"verification kick failed guild={guild_id} username={username}: {type(exc).__name__}: {exc}")
             return
         if code_holder["created"]:
             await self._send_channel(
@@ -1190,4 +1248,15 @@ class MinecraftBridge(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(MinecraftBridge(bot))
+    cog = MinecraftBridge(bot)
+    await bot.add_cog(cog)
+    mc_cmds = sorted(child.name for child in getattr(cog.mc, "commands", []))
+    setup_cmds = sorted(child.name for child in getattr(cog.mcsetup, "commands", []))
+    _log(
+        "cog loaded "
+        f"groups=mc({len(mc_cmds)}),mcsetup({len(setup_cmds)}) "
+        f"standalone=mcverify,unlinkmc,mclinkinfo "
+        f"guild={MINECRAFT_GUILD_ID}"
+    )
+    _log(f"mc subcommands: {', '.join(mc_cmds) or 'none'}")
+    _log(f"mcsetup subcommands: {', '.join(setup_cmds) or 'none'}")

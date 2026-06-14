@@ -91,13 +91,21 @@ class MyBot(commands.Bot):
             self._startup_synced = True
             await self.sync_visible_commands(reason="startup")
 
+    def _flatten_commands(self, commands):
+        groups = []
+        standalone = []
+        for command in commands:
+            children = getattr(command, "commands", None)
+            if children:
+                groups.append(command)
+            else:
+                standalone.append(command)
+        return groups, standalone
+
     def remember_app_commands(self):
         configured = load_config().get("guilds", {})
         guild_ids = {int(gid) for gid in configured if str(gid).isdigit()}
         guild_ids.add(MINECRAFT_GUILD_ID)
-        for command in self.tree.get_commands():
-            for guild_id in getattr(command, "_guild_ids", None) or []:
-                guild_ids.add(int(guild_id))
 
         self._all_app_commands = list(self.tree.get_commands())
         self._guild_app_commands = {}
@@ -106,10 +114,16 @@ class MyBot(commands.Bot):
             self._guild_app_commands[guild_id] = list(self.tree.get_commands(guild=guild))
 
         all_known = self._all_known_commands()
+        groups, standalone = self._flatten_commands(all_known)
         self.slash_health["registered"] = len(all_known)
-        print("[SLASH REGISTERED]")
-        for command in all_known:
-            print(self._command_label(command))
+        print("Registered command groups:")
+        for command in groups:
+            print(f"  {self._command_label(command)}")
+        print("Registered commands:")
+        for command in standalone:
+            print(f"  {command.name}")
+        if not groups and not standalone:
+            print("  (none)")
 
     def _all_known_commands(self, guild_id=None):
         commands_by_name = {}
@@ -140,7 +154,7 @@ class MyBot(commands.Bot):
 
         self.tree.clear_commands(guild=None)
         for command in selected:
-            self.tree.add_command(command)
+            self._safe_add_command(command)
 
         visible_names = [command.name for command in selected]
         self.slash_health["visible"] = len(visible_names)
@@ -181,11 +195,30 @@ class MyBot(commands.Bot):
 
         return selected
 
+    def _safe_add_command(self, command, guild=None):
+        try:
+            if guild is None:
+                self.tree.add_command(command)
+            else:
+                self.tree.add_command(command, guild=guild)
+        except Exception:
+            copied = command.copy()
+            if guild is None:
+                self.tree.add_command(copied)
+            else:
+                self.tree.add_command(copied, guild=guild)
+
     def _restore_tree_commands(self):
         self.tree.clear_commands(guild=None)
         for command in self._all_app_commands:
             if slash_allowed_in_guild(getattr(command, "name", "").lower(), None):
-                self.tree.add_command(command)
+                self._safe_add_command(command)
+        for guild_id, commands in self._guild_app_commands.items():
+            guild = discord.Object(id=guild_id)
+            self.tree.clear_commands(guild=guild)
+            for command in commands:
+                if slash_allowed_in_guild(getattr(command, "name", "").lower(), guild_id):
+                    self._safe_add_command(command, guild=guild)
 
     async def sync_visible_commands(self, guild=None, reason="manual"):
         if not self._all_app_commands and not self._guild_app_commands:
@@ -240,9 +273,10 @@ class MyBot(commands.Bot):
                     print(self._command_label(command))
                 self.tree.clear_commands(guild=target)
                 for command in selected:
-                    self.tree.add_command(command, guild=target)
+                    self._safe_add_command(command, guild=target)
                 synced = await self.tree.sync(guild=target)
                 total_synced += len(synced)
+                print(f"Guild sync result: guild={target.id} reason={reason} visible={len(visible_names)} synced={len(synced)}")
                 self._log_synced_commands(synced, f"guild {target.id}", reason, visible_names)
         except Exception as e:
             print(f"[SLASH SYNC FAILED] {type(e).__name__}: {e}")
