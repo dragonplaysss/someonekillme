@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from cogs.module_registry import all_extensions, module_for_slash, slash_allowed_in_guild, visible_slash_commands
+from cogs.module_registry import MINECRAFT_GUILD_ID, all_extensions, module_for_slash, slash_allowed_in_guild, visible_slash_commands
 from cogs.server_config import get_guild_config, load_config
 
 
@@ -52,6 +52,7 @@ class MyBot(commands.Bot):
             intents=intents,
         )
         self._all_app_commands = []
+        self._guild_app_commands = {}
         self._startup_synced = False
         self.slash_health = {
             "registered": 0,
@@ -91,14 +92,48 @@ class MyBot(commands.Bot):
             await self.sync_visible_commands(reason="startup")
 
     def remember_app_commands(self):
+        configured = load_config().get("guilds", {})
+        guild_ids = {int(gid) for gid in configured if str(gid).isdigit()}
+        guild_ids.add(MINECRAFT_GUILD_ID)
+        for command in self.tree.get_commands():
+            for guild_id in getattr(command, "_guild_ids", None) or []:
+                guild_ids.add(int(guild_id))
+
         self._all_app_commands = list(self.tree.get_commands())
-        self.slash_health["registered"] = len(self._all_app_commands)
+        self._guild_app_commands = {}
+        for guild_id in sorted(guild_ids):
+            guild = discord.Object(id=guild_id)
+            self._guild_app_commands[guild_id] = list(self.tree.get_commands(guild=guild))
+
+        all_known = self._all_known_commands()
+        self.slash_health["registered"] = len(all_known)
         print("[SLASH REGISTERED]")
+        for command in all_known:
+            print(self._command_label(command))
+
+    def _all_known_commands(self, guild_id=None):
+        commands_by_name = {}
         for command in self._all_app_commands:
-            print(getattr(command, "name", str(command)))
+            commands_by_name[getattr(command, "name", "").lower()] = command
+        if guild_id is not None:
+            for command in self._guild_app_commands.get(int(guild_id), []):
+                commands_by_name[getattr(command, "name", "").lower()] = command
+        else:
+            for commands_for_guild in self._guild_app_commands.values():
+                for command in commands_for_guild:
+                    commands_by_name.setdefault(getattr(command, "name", "").lower(), command)
+        return list(commands_by_name.values())
+
+    def _command_label(self, command):
+        name = getattr(command, "name", str(command))
+        children = getattr(command, "commands", None)
+        if children:
+            child_names = ", ".join(child.name for child in children)
+            return f"{name} ({child_names})"
+        return name
 
     def _set_visible_tree_commands(self, command_names, guild_id=None):
-        if not self._all_app_commands:
+        if not self._all_app_commands and not self._guild_app_commands:
             self.remember_app_commands()
 
         selected = self._select_visible_commands(command_names, guild_id=guild_id)
@@ -110,8 +145,8 @@ class MyBot(commands.Bot):
         visible_names = [command.name for command in selected]
         self.slash_health["visible"] = len(visible_names)
         print("[SLASH VISIBLE]")
-        for name in visible_names:
-            print(name)
+        for command in selected:
+            print(self._command_label(command))
         return visible_names
 
     def _select_visible_commands(self, command_names, guild_id=None):
@@ -128,7 +163,7 @@ class MyBot(commands.Bot):
         }
         visible = set(requested or core)
         selected = []
-        for command in self._all_app_commands:
+        for command in self._all_known_commands(guild_id=guild_id):
             command_name = getattr(command, "name", "").lower()
             module = module_for_slash(command_name)
             if not slash_allowed_in_guild(command_name, guild_id):
@@ -140,7 +175,7 @@ class MyBot(commands.Bot):
             visible = set(core)
             selected = [
                 command
-                for command in self._all_app_commands
+                for command in self._all_known_commands(guild_id=guild_id)
                 if getattr(command, "name", "").lower() in visible
             ]
 
@@ -153,13 +188,15 @@ class MyBot(commands.Bot):
                 self.tree.add_command(command)
 
     async def sync_visible_commands(self, guild=None, reason="manual"):
-        if not self._all_app_commands:
+        if not self._all_app_commands and not self._guild_app_commands:
             self.remember_app_commands()
 
         targets = [guild] if guild else list(self.guilds)
         if not targets:
             configured = load_config().get("guilds", {})
-            targets = [discord.Object(id=int(gid)) for gid in configured if gid.isdigit()]
+            target_ids = {int(gid) for gid in configured if gid.isdigit()}
+            target_ids.add(MINECRAFT_GUILD_ID)
+            targets = [discord.Object(id=gid) for gid in sorted(target_ids)]
 
         if not targets:
             targets = [None]
@@ -199,8 +236,8 @@ class MyBot(commands.Bot):
                 visible_names = [command.name for command in selected]
                 self.slash_health["visible"] = len(visible_names)
                 print("[SLASH VISIBLE]")
-                for name in visible_names:
-                    print(name)
+                for command in selected:
+                    print(self._command_label(command))
                 self.tree.clear_commands(guild=target)
                 for command in selected:
                     self.tree.add_command(command, guild=target)
@@ -225,7 +262,7 @@ class MyBot(commands.Bot):
         print(f"[SLASH SYNC] scope={scope} reason={reason} visible={len(visible_names)} synced={len(synced)}")
         print("[SLASH SYNCED]")
         for command in synced:
-            print(command.name)
+            print(self._command_label(command))
 
 
 async def main():

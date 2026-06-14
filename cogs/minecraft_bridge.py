@@ -21,9 +21,9 @@ except ImportError:
 SCREEN_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 CHAT_RE = re.compile(r"\]: <([^>]+)> (.*)$")
 LIST_RE = re.compile(r"There are (\d+) of a max of \d+ players online: ?(.*)$")
-PLAYER_EVENT_RE = re.compile(r"\]: ([A-Za-z0-9_]{1,16}) (joined|left) the game$")
-ADVANCEMENT_RE = re.compile(r"\]: ([A-Za-z0-9_]{1,16}) has (?:made the advancement|completed the challenge|reached the goal) \[(.+)]$")
-USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
+PLAYER_EVENT_RE = re.compile(r"\]: (.+?) (joined|left) the game$")
+ADVANCEMENT_RE = re.compile(r"\]: (.+?) has (?:made the advancement|completed the challenge|reached the goal) \[(.+)]$")
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_.]{1,32}$")
 VERIFY_CODE_TTL = 600
 CHAT_WEBHOOK_NAME = "Shorekeeper Minecraft Chat"
 DEATH_HINTS = (
@@ -50,7 +50,7 @@ DEATH_HINTS = (
 
 def _minecraft_defaults():
     return {
-        "enabled": False,
+        "enabled": True,
         "screen_name": "minecraft",
         "chat_channel": None,
         "console_channel": None,
@@ -62,11 +62,19 @@ def _minecraft_defaults():
     }
 
 
+def _default_minecraft_value(key):
+    return _minecraft_defaults()[key]
+
+
 def _clean_text(value, limit=500):
     text = str(value or "")
     text = text.replace("\r", " ").replace("\n", " ")
     text = "".join(ch for ch in text if ord(ch) >= 32)
     return text.strip()[:limit]
+
+
+def _log(message):
+    print(f"[MinecraftBridge] {message}")
 
 
 def _clean_screen_name(value):
@@ -119,9 +127,12 @@ class MinecraftBridge(commands.Cog):
         self.started_at = {}
         self.last_status = {}
         self.webhook_cache = {}
+        self._last_warnings = {}
+        self._last_validation = 0
 
     async def cog_load(self):
         self.log_task = asyncio.create_task(self._monitor_logs())
+        _log("log monitor task scheduled")
 
     async def cog_unload(self):
         if self.log_task:
@@ -130,6 +141,7 @@ class MinecraftBridge(commands.Cog):
                 await self.log_task
             except asyncio.CancelledError:
                 pass
+        _log("log monitor task stopped")
 
     def _minecraft_config(self, guild_id):
         cfg = get_guild_config(guild_id)
@@ -142,11 +154,23 @@ class MinecraftBridge(commands.Cog):
             minecraft["pending_verifications"] = {}
         return minecraft
 
+    def _server_directory(self, cfg):
+        configured = _clean_text(cfg.get("server_directory"), 300)
+        if not configured:
+            configured = _default_minecraft_value("server_directory")
+        return Path(configured).expanduser()
+
+    def _latest_log_path(self, cfg):
+        return self._server_directory(cfg) / "logs" / "latest.log"
+
     def _username_key(self, username):
-        return _clean_text(username, 16).lower()
+        return _clean_text(username, 32).lower()
 
     def _avatar_url(self, username):
-        return f"https://mc-heads.net/avatar/{_clean_text(username, 16)}"
+        clean = _clean_text(username, 32).lstrip(".")
+        if not clean or not re.fullmatch(r"[A-Za-z0-9_]{1,16}", clean):
+            clean = "Steve"
+        return f"https://mc-heads.net/avatar/{clean}"
 
     def _minecraft_links(self, cfg):
         links = cfg.setdefault("links", {})
@@ -177,6 +201,8 @@ class MinecraftBridge(commands.Cog):
             if now - float(record.get("created_at", 0)) > VERIFY_CODE_TTL
         ]
         for code in expired:
+            record = pending.get(code) or {}
+            _log(f"verification code expired code={code} username={record.get('username')}")
             pending.pop(code, None)
         return bool(expired)
 
@@ -220,6 +246,7 @@ class MinecraftBridge(commands.Cog):
         return cfg
 
     async def _run_exec(self, *args, cwd=None, timeout=12):
+        _log(f"exec start args={' '.join(str(arg) for arg in args)} cwd={cwd or '-'}")
         proc = await asyncio.create_subprocess_exec(
             *args,
             cwd=str(cwd) if cwd else None,
@@ -231,19 +258,52 @@ class MinecraftBridge(commands.Cog):
         except asyncio.TimeoutError:
             proc.kill()
             stdout, stderr = await proc.communicate()
+            _log(f"exec timeout args={' '.join(str(arg) for arg in args)}")
             raise TimeoutError(f"`{args[0]}` timed out.")
+        if proc.returncode != 0:
+            _log(f"exec failed code={proc.returncode} stderr={_clean_text(stderr, 300)}")
         return proc.returncode, stdout.decode(errors="replace"), stderr.decode(errors="replace")
+
+    def _warn_once(self, key, message, interval=300):
+        now = time.time()
+        if now - self._last_warnings.get(key, 0) >= interval:
+            self._last_warnings[key] = now
+            _log(f"warning: {message}")
 
     async def _screen_exists(self, screen_name):
         try:
             code, stdout, stderr = await self._run_exec("screen", "-ls", timeout=5)
-        except (FileNotFoundError, TimeoutError):
+        except (FileNotFoundError, TimeoutError) as exc:
+            self._warn_once("screen_exec", f"could not inspect screen sessions: {type(exc).__name__}: {exc}")
             return False
         output = f"{stdout}\n{stderr}"
         return bool(re.search(rf"(^|\s)\d+\.{re.escape(screen_name)}(\s|$)", output))
 
+    async def _available_screens(self):
+        try:
+            code, stdout, stderr = await self._run_exec("screen", "-ls", timeout=5)
+        except (FileNotFoundError, TimeoutError) as exc:
+            self._warn_once("screen_list", f"could not list screen sessions: {type(exc).__name__}: {exc}")
+            return []
+        if code != 0 and "No Sockets found" not in f"{stdout}\n{stderr}":
+            return []
+        names = []
+        for match in re.finditer(r"(?:^|\s)\d+\.([A-Za-z0-9_.-]+)\s", f"{stdout}\n{stderr}"):
+            names.append(match.group(1))
+        return names
+
+    async def _resolve_screen_name(self, cfg):
+        configured = _clean_screen_name(cfg.get("screen_name") or _default_minecraft_value("screen_name"))
+        if await self._screen_exists(configured):
+            return configured
+        screens = await self._available_screens()
+        if len(screens) == 1:
+            self._warn_once("screen_autodetect", f"configured screen `{configured}` missing; using detected session `{screens[0]}`")
+            return screens[0]
+        return configured
+
     async def _send_to_screen(self, cfg, command):
-        screen_name = _clean_screen_name(cfg.get("screen_name"))
+        screen_name = await self._resolve_screen_name(cfg)
         safe_command = _clean_text(command, 500)
         if not safe_command:
             raise ValueError("Command cannot be empty.")
@@ -258,15 +318,17 @@ class MinecraftBridge(commands.Cog):
         )
         if code != 0:
             raise RuntimeError(_clean_text(stderr, 300) or "Could not write to the screen session.")
+        _log(f"screen command sent session={screen_name} command={safe_command[:80]}")
 
     async def _start_server(self, guild_id, cfg):
-        screen_name = _clean_screen_name(cfg.get("screen_name"))
+        screen_name = _clean_screen_name(cfg.get("screen_name") or _default_minecraft_value("screen_name"))
         start_command = _clean_text(cfg.get("start_command"), 1000)
         if not start_command:
             return False, "No start command is configured."
         if any(ord(ch) < 32 for ch in start_command):
             return False, "Start command contains invalid control characters."
-        if not await self._screen_exists(screen_name):
+        resolved_screen = await self._resolve_screen_name(cfg)
+        if not await self._screen_exists(resolved_screen):
             return False, f"Screen session `{screen_name}` was not found."
         await self._send_to_screen(cfg, start_command)
         self.started_at[guild_id] = time.time()
@@ -296,13 +358,15 @@ class MinecraftBridge(commands.Cog):
             await member.add_roles(role, reason="Minecraft account verified with Shorekeeper")
             return True
         except (discord.Forbidden, discord.HTTPException):
+            _log(f"verified role grant failed guild={guild.id} user={member.id} role={role_id}")
             return False
 
     async def get_or_create_chat_webhook(self, channel):
         cached_id = self.webhook_cache.get(channel.id)
         try:
             webhooks = await channel.webhooks()
-        except (discord.Forbidden, discord.HTTPException):
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            _log(f"webhook list failed channel={channel.id}: {type(exc).__name__}: {exc}")
             return None
 
         if cached_id:
@@ -317,17 +381,20 @@ class MinecraftBridge(commands.Cog):
 
         try:
             webhook = await channel.create_webhook(name=CHAT_WEBHOOK_NAME)
-        except (discord.Forbidden, discord.HTTPException):
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            _log(f"webhook create failed channel={channel.id}: {type(exc).__name__}: {exc}")
             return None
         self.webhook_cache[channel.id] = webhook.id
         return webhook
 
     async def send_mc_webhook(self, guild_id, channel_id, username, content):
         if not channel_id:
+            self._warn_once(f"webhook_no_channel_{guild_id}", "chat channel is not configured")
             return
         guild = self.bot.get_guild(guild_id)
         channel = guild.get_channel(channel_id) if guild else self.bot.get_channel(channel_id)
         if not isinstance(channel, discord.TextChannel):
+            self._warn_once(f"webhook_bad_channel_{channel_id}", f"chat channel {channel_id} is missing or not a text channel")
             return
         webhook = await self.get_or_create_chat_webhook(channel)
         if not webhook:
@@ -339,14 +406,15 @@ class MinecraftBridge(commands.Cog):
                 avatar_url=self._avatar_url(username),
                 allowed_mentions=discord.AllowedMentions.none(),
             )
-        except (discord.Forbidden, discord.HTTPException):
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            _log(f"webhook send failed channel={channel_id} username={username}: {type(exc).__name__}: {exc}")
             return
 
     def _find_server_process(self, cfg):
         if psutil is None:
             return None
-        server_directory = str(Path(_clean_text(cfg.get("server_directory"), 300)).expanduser())
-        screen_name = _clean_text(cfg.get("screen_name"), 64)
+        server_directory = str(self._server_directory(cfg))
+        screen_name = _clean_text(cfg.get("screen_name") or _default_minecraft_value("screen_name"), 64)
         best = None
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time", "memory_info"]):
             try:
@@ -368,8 +436,7 @@ class MinecraftBridge(commands.Cog):
         return best
 
     async def _status_fields(self, guild_id, cfg):
-        screen_name = _clean_screen_name(cfg.get("screen_name"))
-        online = await self._screen_exists(screen_name)
+        online = await self._screen_exists(await self._resolve_screen_name(cfg))
         proc = self._find_server_process(cfg)
         uptime = "unknown"
         ram = "unknown"
@@ -406,6 +473,7 @@ class MinecraftBridge(commands.Cog):
         try:
             await self._send_to_screen(cfg, command)
         except Exception as exc:
+            _log(f"/mc console failed guild={interaction.guild.id} user={interaction.user.id}: {type(exc).__name__}: {exc}")
             return await self._send_embed(interaction, "Console Command Failed", str(exc), 0xED4245)
         await self._send_embed(interaction, "Console Command Sent", f"`{_clean_text(command, 200)}`")
 
@@ -418,6 +486,7 @@ class MinecraftBridge(commands.Cog):
         try:
             ok, message = await self._start_server(interaction.guild.id, cfg)
         except Exception as exc:
+            _log(f"/mc start failed guild={interaction.guild.id} user={interaction.user.id}: {type(exc).__name__}: {exc}")
             ok, message = False, str(exc)
         await interaction.followup.send(embed=self._embed("Minecraft Start", message, 0x57F287 if ok else 0xFEE75C), ephemeral=True)
 
@@ -429,6 +498,7 @@ class MinecraftBridge(commands.Cog):
         try:
             await self._stop_server(cfg)
         except Exception as exc:
+            _log(f"/mc stop failed guild={interaction.guild.id} user={interaction.user.id}: {type(exc).__name__}: {exc}")
             return await self._send_embed(interaction, "Minecraft Stop Failed", str(exc), 0xED4245)
         await self._send_embed(interaction, "Minecraft Stop", "`stop` was sent to the server.")
 
@@ -441,6 +511,7 @@ class MinecraftBridge(commands.Cog):
         try:
             await self._stop_server(cfg)
         except Exception as exc:
+            _log(f"/mc restart stop failed guild={interaction.guild.id} user={interaction.user.id}: {type(exc).__name__}: {exc}")
             return await interaction.followup.send(embed=self._embed("Restart Failed", str(exc), 0xED4245), ephemeral=True)
 
         screen_name = _clean_screen_name(cfg.get("screen_name"))
@@ -451,6 +522,7 @@ class MinecraftBridge(commands.Cog):
         try:
             ok, message = await self._start_server(interaction.guild.id, cfg)
         except Exception as exc:
+            _log(f"/mc restart start failed guild={interaction.guild.id} user={interaction.user.id}: {type(exc).__name__}: {exc}")
             ok, message = False, str(exc)
         await interaction.followup.send(embed=self._embed("Minecraft Restart", message, 0x57F287 if ok else 0xED4245), ephemeral=True)
 
@@ -498,6 +570,27 @@ class MinecraftBridge(commands.Cog):
             embed.set_footer(text=f"{len(players) - 12} more player(s) not shown.")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @mc.command(name="selftest", description="Run Minecraft bridge startup checks.")
+    async def mc_selftest(self, interaction: discord.Interaction):
+        cfg = await self._require_enabled_owner(interaction)
+        if not cfg:
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        checks = await self._run_selftest(interaction.guild.id, cfg, inject_command=True)
+        ok = all(check["ok"] for check in checks)
+        lines = [
+            f"{'PASS' if check['ok'] else 'FAIL'} - {check['name']}: {check['detail']}"
+            for check in checks
+        ]
+        await interaction.followup.send(
+            embed=self._embed(
+                "Minecraft Bridge Self-Test",
+                "\n".join(lines)[:4000],
+                0x57F287 if ok else 0xED4245,
+            ),
+            ephemeral=True,
+        )
+
     @app_commands.guilds(MINECRAFT_GUILD_ID)
     @app_commands.command(name="mcverify", description="Verify your Minecraft account with a Shorekeeper code.")
     async def mcverify(self, interaction: discord.Interaction, code: str):
@@ -518,9 +611,11 @@ class MinecraftBridge(commands.Cog):
             pending = minecraft.setdefault("pending_verifications", {})
             record = pending.get(verify_code)
             if not record:
+                _log(f"verification failed invalid code guild={interaction.guild.id} user={interaction.user.id} code={verify_code}")
                 return
-            username = _clean_text(record.get("username"), 16)
+            username = _clean_text(record.get("username"), 32)
             if not username:
+                _log(f"verification failed empty username guild={interaction.guild.id} code={verify_code}")
                 pending.pop(verify_code, None)
                 return
             links = minecraft.setdefault("links", {})
@@ -528,11 +623,13 @@ class MinecraftBridge(commands.Cog):
             existing_discord = self._discord_link(minecraft, interaction.user.id)
             if existing_discord and self._username_key(existing_discord.get("minecraft_username")) != username_key:
                 result["message"] = f"You are already linked to `{existing_discord.get('minecraft_username')}`. Use `/unlinkmc` first."
+                _log(f"verification blocked already-linked discord={interaction.user.id} existing={existing_discord.get('minecraft_username')} requested={username}")
                 return
             existing_user = links.get(username_key)
             if existing_user and int(existing_user.get("discord_id", 0)) != interaction.user.id:
                 if not is_panel_owner(interaction.user.id):
                     result["message"] = f"`{username}` is already linked to another Discord account."
+                    _log(f"verification blocked username-taken username={username} discord={interaction.user.id}")
                     return
             links[username_key] = {
                 "minecraft_username": username,
@@ -541,6 +638,7 @@ class MinecraftBridge(commands.Cog):
             }
             pending.pop(verify_code, None)
             result.update({"ok": True, "username": username, "message": f"`{username}` is now linked to your Discord account."})
+            _log(f"verification success guild={interaction.guild.id} username={username} discord={interaction.user.id}")
 
         update_guild_config(interaction.guild.id, updater)
         if result["ok"]:
@@ -703,32 +801,149 @@ class MinecraftBridge(commands.Cog):
             username = display_name
         try:
             await self._send_to_screen(cfg, f"say [Discord] {username}: {content}")
-        except Exception:
+        except Exception as exc:
+            _log(f"discord-to-minecraft failed guild={message.guild.id} channel={message.channel.id}: {type(exc).__name__}: {exc}")
             return
 
     async def _monitor_logs(self):
-        await self.bot.wait_until_ready()
+        try:
+            await self.bot.wait_until_ready()
+        except RuntimeError as exc:
+            _log(f"log monitor stopped before bot ready: {exc}")
+            return
+        _log("log monitor started")
+        await self._startup_selftest()
         while not self.bot.is_closed():
             try:
+                await self._validate_configs_periodically()
                 await self._poll_all_logs()
             except Exception as exc:
-                print(f"[MinecraftBridge] log monitor error: {type(exc).__name__}: {exc}")
+                _log(f"log monitor error: {type(exc).__name__}: {exc}")
             await asyncio.sleep(1)
+
+    async def _startup_selftest(self):
+        cfg = self._minecraft_config(MINECRAFT_GUILD_ID)
+        checks = await self._run_selftest(MINECRAFT_GUILD_ID, cfg, inject_command=True)
+        failed = [check for check in checks if not check["ok"]]
+        if failed:
+            _log("STARTUP SELF-TEST FAILED")
+            for check in failed:
+                _log(f"SELF-TEST ERROR - {check['name']}: {check['detail']}")
+            return
+        _log("startup self-test passed")
+
+    async def _run_selftest(self, guild_id, cfg, inject_command=False):
+        checks = []
+
+        def add(name, ok, detail):
+            checks.append({"name": name, "ok": bool(ok), "detail": _clean_text(detail, 500)})
+
+        server_dir = self._server_directory(cfg)
+        logs_dir = server_dir / "logs"
+        latest_log = self._latest_log_path(cfg)
+
+        add("Minecraft directory", server_dir.is_dir(), str(server_dir))
+        add("logs directory", logs_dir.is_dir(), str(logs_dir))
+        add("latest.log", latest_log.is_file(), str(latest_log))
+
+        screen_name = await self._resolve_screen_name(cfg)
+        screen_ok = await self._screen_exists(screen_name)
+        add("screen session", screen_ok, f"`{screen_name}` reachable" if screen_ok else f"`{screen_name}` not reachable")
+
+        if latest_log.is_file():
+            try:
+                stat = latest_log.stat()
+                add("log file readable", True, f"{latest_log} size={stat.st_size}")
+            except OSError as exc:
+                add("log file readable", False, f"{type(exc).__name__}: {exc}")
+        else:
+            add("log file readable", False, f"{latest_log} missing")
+
+        if inject_command:
+            try:
+                await self._send_to_screen(cfg, "list")
+                add("command injection", True, "`list` command accepted by screen")
+            except Exception as exc:
+                add("command injection", False, f"{type(exc).__name__}: {exc}")
+        else:
+            add("command injection", screen_ok, "screen reachable; injection skipped")
+
+        if latest_log.is_file():
+            try:
+                await self._poll_log(guild_id, latest_log, cfg, request_list=False)
+                state = self.log_state.get(guild_id) or {}
+                attached = state.get("path") == latest_log
+                add("log monitoring", attached, "attached to latest.log" if attached else "monitor did not attach")
+            except Exception as exc:
+                add("log monitoring", False, f"{type(exc).__name__}: {exc}")
+        else:
+            add("log monitoring", False, "latest.log missing")
+
+        for check in checks:
+            if check["ok"]:
+                _log(f"self-test pass - {check['name']}: {check['detail']}")
+            else:
+                _log(f"self-test fail - {check['name']}: {check['detail']}")
+        return checks
+
+    async def _validate_configs_periodically(self):
+        now = time.time()
+        if now - self._last_validation < 60:
+            return
+        self._last_validation = now
+        config = load_config()
+        guild_config = config.get("guilds", {}).get(str(MINECRAFT_GUILD_ID))
+        if guild_config is None:
+            guild_config = get_guild_config(MINECRAFT_GUILD_ID)
+        await self._validate_guild_config(MINECRAFT_GUILD_ID, guild_config.get("minecraft") or {})
+
+    async def _validate_guild_config(self, guild_id, minecraft):
+        enabled = minecraft.get("enabled", True)
+        server_dir = self._server_directory(minecraft)
+        logs_dir = server_dir / "logs"
+        latest_log = self._latest_log_path(minecraft)
+        guild = self.bot.get_guild(guild_id)
+        prefix = f"guild={guild_id}"
+        if not enabled:
+            self._warn_once(f"disabled_{guild_id}", f"{prefix} bridge is disabled in config")
+        if not server_dir.exists():
+            self._warn_once(f"server_dir_{guild_id}", f"{prefix} server directory missing: {server_dir}")
+        if not logs_dir.exists():
+            self._warn_once(f"logs_dir_{guild_id}", f"{prefix} logs directory missing: {logs_dir}")
+        if not latest_log.exists():
+            self._warn_once(f"latest_log_{guild_id}", f"{prefix} latest.log missing: {latest_log}")
+        if guild is None:
+            self._warn_once(f"guild_missing_{guild_id}", f"{prefix} bot cannot see configured guild")
+        else:
+            for key in ("chat_channel", "console_channel"):
+                channel_id = minecraft.get(key)
+                if channel_id and not isinstance(guild.get_channel(int(channel_id)), discord.TextChannel):
+                    self._warn_once(f"{key}_{channel_id}", f"{prefix} configured {key} is missing or not text: {channel_id}")
+            role_id = minecraft.get("verified_minecraft_role")
+            if role_id and not guild.get_role(int(role_id)):
+                self._warn_once(f"verified_role_{role_id}", f"{prefix} verified Minecraft role missing: {role_id}")
+        screen_name = _clean_text(minecraft.get("screen_name") or _default_minecraft_value("screen_name"), 64)
+        if not await self._screen_exists(screen_name):
+            screens = await self._available_screens()
+            detail = f" available={', '.join(screens)}" if screens else ""
+            self._warn_once(f"screen_{guild_id}_{screen_name}", f"{prefix} screen session `{screen_name}` not found.{detail}", interval=60)
 
     async def _poll_all_logs(self):
         config = load_config()
-        for gid, guild_config in config.get("guilds", {}).items():
-            if not gid.isdigit():
-                continue
-            if int(gid) != MINECRAFT_GUILD_ID:
-                continue
+        guild_ids = {MINECRAFT_GUILD_ID}
+        guild_ids.update(
+            int(gid)
+            for gid in config.get("guilds", {})
+            if str(gid).isdigit() and int(gid) == MINECRAFT_GUILD_ID
+        )
+        for guild_id in guild_ids:
+            guild_config = get_guild_config(guild_id)
             minecraft = guild_config.get("minecraft") or {}
-            if not minecraft.get("enabled"):
+            if not minecraft.get("enabled", True):
                 continue
-            guild_id = int(gid)
             if self._has_expired_codes(minecraft):
                 self._expire_codes(guild_id)
-            latest_log = Path(_clean_text(minecraft.get("server_directory"), 300)).expanduser() / "logs" / "latest.log"
+            latest_log = self._latest_log_path(minecraft)
             await self._poll_log(guild_id, latest_log, minecraft)
 
     def _has_expired_codes(self, minecraft):
@@ -746,27 +961,44 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(guild_id, updater)
         return changed["value"]
 
-    async def _poll_log(self, guild_id, path, cfg):
+    async def _poll_log(self, guild_id, path, cfg, request_list=True):
         try:
             stat = path.stat()
-        except OSError:
+        except OSError as exc:
+            self._warn_once(f"log_missing_{guild_id}", f"cannot read Minecraft log {path}: {type(exc).__name__}: {exc}", interval=60)
             return
-        new_state = guild_id not in self.log_state
-        state = self.log_state.setdefault(guild_id, {"path": path, "pos": 0, "stamp": stat.st_mtime})
-        if state.get("path") != path or stat.st_size < state.get("pos", 0):
-            state.update({"path": path, "pos": 0, "stamp": stat.st_mtime})
-            new_state = True
+        signature = (getattr(stat, "st_dev", None), getattr(stat, "st_ino", None), getattr(stat, "st_ctime_ns", None))
+        state = self.log_state.get(guild_id)
+        if state is None:
+            self.log_state[guild_id] = {
+                "path": path,
+                "pos": stat.st_size,
+                "stamp": stat.st_mtime,
+                "signature": signature,
+            }
+            _log(f"log attached guild={guild_id} path={path} start_pos={stat.st_size}")
+            if request_list:
+                await self._request_player_list(guild_id, cfg)
+            return
+        rotated = state.get("path") != path or state.get("signature") != signature or stat.st_size < state.get("pos", 0)
+        if rotated:
+            _log(f"log rotation/reconnect detected guild={guild_id} path={path}")
+            state.update({"path": path, "pos": 0, "stamp": stat.st_mtime, "signature": signature})
         if stat.st_size == state.get("pos", 0):
             return
 
-        with path.open("r", encoding="utf-8", errors="replace") as handle:
-            handle.seek(state.get("pos", 0))
-            lines = handle.readlines()
-            state["pos"] = handle.tell()
-            state["stamp"] = stat.st_mtime
+        try:
+            with path.open("r", encoding="utf-8", errors="replace") as handle:
+                handle.seek(state.get("pos", 0))
+                lines = handle.readlines()
+                state["pos"] = handle.tell()
+                state["stamp"] = stat.st_mtime
+        except OSError as exc:
+            self._warn_once(f"log_read_{guild_id}", f"failed reading Minecraft log {path}: {type(exc).__name__}: {exc}", interval=60)
+            return
 
         for line in lines:
-            await self._handle_log_line(guild_id, line.strip(), cfg, announce=not new_state)
+            await self._handle_log_line(guild_id, line.strip(), cfg, announce=True)
 
     async def _handle_log_line(self, guild_id, line, cfg, announce=True):
         if not line:
@@ -775,6 +1007,12 @@ class MinecraftBridge(commands.Cog):
         if list_match:
             names = [name.strip() for name in list_match.group(2).split(",") if name.strip()]
             self.players[guild_id] = set(names)
+            _log(f"player list updated guild={guild_id} count={len(names)}")
+            if announce:
+                for name in names:
+                    clean_name = _clean_text(name, 32)
+                    if clean_name and not self._linked_record(guild_id, clean_name):
+                        await self._start_verification(guild_id, cfg, clean_name)
             return
 
         self._update_version_from_line(guild_id, line)
@@ -785,6 +1023,7 @@ class MinecraftBridge(commands.Cog):
             if player and message:
                 self.players.setdefault(guild_id, set()).add(player)
                 if announce:
+                    _log(f"minecraft-to-discord chat guild={guild_id} player={player}")
                     await self.send_mc_webhook(guild_id, cfg.get("chat_channel"), player, message)
             return
 
@@ -794,7 +1033,9 @@ class MinecraftBridge(commands.Cog):
         event_match = PLAYER_EVENT_RE.search(line)
         if event_match:
             player, action = event_match.groups()
+            player = _clean_text(player, 32)
             if action == "joined":
+                _log(f"player joined guild={guild_id} player={player} linked={bool(self._linked_record(guild_id, player))}")
                 self.players.setdefault(guild_id, set()).add(player)
                 if announce and not self._linked_record(guild_id, player):
                     await self._start_verification(guild_id, cfg, player)
@@ -802,6 +1043,7 @@ class MinecraftBridge(commands.Cog):
                 if announce:
                     await self._send_player_event_embed(guild_id, cfg.get("console_channel"), "join", player)
                 return
+            _log(f"player left guild={guild_id} player={player}")
             self.players.setdefault(guild_id, set()).discard(player)
             if announce:
                 await self._send_player_event_embed(guild_id, cfg.get("console_channel"), "leave", player)
@@ -810,17 +1052,21 @@ class MinecraftBridge(commands.Cog):
         advancement = ADVANCEMENT_RE.search(line)
         if advancement and announce:
             player, title = advancement.groups()
+            player = _clean_text(player, 32)
             await self._send_advancement_embed(guild_id, cfg.get("console_channel"), player, title)
             return
 
         message = line.split("]: ", 1)[-1]
         if "Done (" in message and "For help" in message:
             self.started_at[guild_id] = time.time()
+            _log(f"server online detected guild={guild_id}")
+            await self._request_player_list(guild_id, cfg)
             if announce:
                 await self._send_server_state_embed(guild_id, cfg.get("console_channel"), online=True)
             return
         if "Stopping server" in message or "Stopping the server" in message or "Server stopped" in message:
             self.players[guild_id] = set()
+            _log(f"server offline detected guild={guild_id}")
             if announce:
                 await self._send_server_state_embed(guild_id, cfg.get("console_channel"), online=False)
             return
@@ -831,6 +1077,7 @@ class MinecraftBridge(commands.Cog):
 
     async def _start_verification(self, guild_id, cfg, username):
         if not USERNAME_RE.fullmatch(username):
+            _log(f"verification skipped unsupported username={username}")
             return
         code_holder = {"code": None, "created": False}
 
@@ -855,7 +1102,9 @@ class MinecraftBridge(commands.Cog):
         update_guild_config(guild_id, updater)
         code = code_holder["code"]
         if not code:
+            _log(f"verification could not create code guild={guild_id} username={username}")
             return
+        _log(f"verification code ready guild={guild_id} username={username} created={code_holder['created']} code={code}")
         reason = (
             "Shorekeeper Verification Required"
             f"\\n\\nCode: {code}"
@@ -864,7 +1113,7 @@ class MinecraftBridge(commands.Cog):
         try:
             await self._send_to_screen(cfg, f"kick {username} {reason}")
         except Exception as exc:
-            print(f"[MinecraftBridge] verification kick failed for {username}: {type(exc).__name__}: {exc}")
+            _log(f"verification kick failed for {username}: {type(exc).__name__}: {exc}")
             return
         if code_holder["created"]:
             await self._send_channel(
@@ -872,6 +1121,12 @@ class MinecraftBridge(commands.Cog):
                 cfg.get("console_channel"),
                 f"`{username}` needs verification. A 10-minute code was shown in-game.",
             )
+
+    async def _request_player_list(self, guild_id, cfg):
+        try:
+            await self._send_to_screen(cfg, "list")
+        except Exception as exc:
+            _log(f"player list request failed guild={guild_id}: {type(exc).__name__}: {exc}")
 
     async def _send_player_event_embed(self, guild_id, channel_id, kind, username):
         title = "\U0001f7e2 Player Joined" if kind == "join" else "\U0001f534 Player Left"
@@ -915,10 +1170,12 @@ class MinecraftBridge(commands.Cog):
 
     async def _send_channel(self, guild_id, channel_id, content=None, embed=None):
         if not channel_id:
+            self._warn_once(f"channel_missing_{guild_id}", "console channel is not configured")
             return
         guild = self.bot.get_guild(guild_id)
         channel = guild.get_channel(channel_id) if guild else self.bot.get_channel(channel_id)
         if not channel:
+            self._warn_once(f"channel_not_found_{channel_id}", f"configured channel not found: {channel_id}")
             return
         try:
             kwargs = {"allowed_mentions": discord.AllowedMentions.none()}
@@ -927,7 +1184,8 @@ class MinecraftBridge(commands.Cog):
             if embed:
                 kwargs["embed"] = embed
             await channel.send(**kwargs)
-        except (discord.Forbidden, discord.HTTPException):
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            _log(f"channel send failed guild={guild_id} channel={channel_id}: {type(exc).__name__}: {exc}")
             return
 
 

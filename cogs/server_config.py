@@ -35,7 +35,7 @@ DEFAULT_GUILD = {
     },
     "modules": {},
     "minecraft": {
-        "enabled": False,
+        "enabled": True,
         "screen_name": "minecraft",
         "chat_channel": None,
         "console_channel": None,
