@@ -34,6 +34,17 @@ DEFAULT_GUILD = {
         "mod_logs": None,
     },
     "modules": {},
+    "minecraft": {
+        "enabled": False,
+        "screen_name": "minecraft",
+        "chat_channel": None,
+        "console_channel": None,
+        "server_directory": "/home/ubuntu/minecraft",
+        "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+        "links": {},
+        "pending_verifications": {},
+        "verified_minecraft_role": None,
+    },
     "ff_allowed": [],
     "ff_warning": [],
     "ff_blocked": [],
@@ -68,6 +79,14 @@ def _ensure_guild_defaults(guild_config):
     if not isinstance(guild_config.get("modules"), dict):
         guild_config["modules"] = {}
         changed = True
+    if not isinstance(guild_config.get("minecraft"), dict):
+        guild_config["minecraft"] = deepcopy(DEFAULT_GUILD["minecraft"])
+        changed = True
+    else:
+        for key, value in DEFAULT_GUILD["minecraft"].items():
+            if key not in guild_config["minecraft"]:
+                guild_config["minecraft"][key] = deepcopy(value)
+                changed = True
     return changed
 
 

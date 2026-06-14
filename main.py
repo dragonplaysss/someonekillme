@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from cogs.module_registry import all_extensions, module_for_slash, visible_slash_commands
+from cogs.module_registry import all_extensions, module_for_slash, slash_allowed_in_guild, visible_slash_commands
 from cogs.server_config import get_guild_config, load_config
 
 
@@ -97,11 +97,11 @@ class MyBot(commands.Bot):
         for command in self._all_app_commands:
             print(getattr(command, "name", str(command)))
 
-    def _set_visible_tree_commands(self, command_names):
+    def _set_visible_tree_commands(self, command_names, guild_id=None):
         if not self._all_app_commands:
             self.remember_app_commands()
 
-        selected = self._select_visible_commands(command_names)
+        selected = self._select_visible_commands(command_names, guild_id=guild_id)
 
         self.tree.clear_commands(guild=None)
         for command in selected:
@@ -114,7 +114,7 @@ class MyBot(commands.Bot):
             print(name)
         return visible_names
 
-    def _select_visible_commands(self, command_names):
+    def _select_visible_commands(self, command_names, guild_id=None):
         requested = {name.lower() for name in command_names}
         core = {
             "help",
@@ -131,6 +131,8 @@ class MyBot(commands.Bot):
         for command in self._all_app_commands:
             command_name = getattr(command, "name", "").lower()
             module = module_for_slash(command_name)
+            if not slash_allowed_in_guild(command_name, guild_id):
+                continue
             if command_name in visible or module == "core":
                 selected.append(command)
 
@@ -147,7 +149,8 @@ class MyBot(commands.Bot):
     def _restore_tree_commands(self):
         self.tree.clear_commands(guild=None)
         for command in self._all_app_commands:
-            self.tree.add_command(command)
+            if slash_allowed_in_guild(getattr(command, "name", "").lower(), None):
+                self.tree.add_command(command)
 
     async def sync_visible_commands(self, guild=None, reason="manual"):
         if not self._all_app_commands:
@@ -189,7 +192,10 @@ class MyBot(commands.Bot):
                     continue
 
                 guild_config = get_guild_config(target.id)
-                selected = self._select_visible_commands(visible_slash_commands(guild_config))
+                selected = self._select_visible_commands(
+                    visible_slash_commands(guild_config, guild_id=target.id),
+                    guild_id=target.id,
+                )
                 visible_names = [command.name for command in selected]
                 self.slash_health["visible"] = len(visible_names)
                 print("[SLASH VISIBLE]")

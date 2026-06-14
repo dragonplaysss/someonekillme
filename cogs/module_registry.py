@@ -1,4 +1,5 @@
 CORE_MODULE = "core"
+MINECRAFT_GUILD_ID = 1459184432954212477
 MODULE_STATES = {"active", "hidden", "disabled", "debug"}
 VISIBLE_CORE_COMMANDS = {
     "help",
@@ -167,6 +168,12 @@ MODULES = {
         "slash": [],
         "mention": [],
     },
+    "minecraft": {
+        "extension": "cogs.minecraft_bridge",
+        "slash": ["mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo"],
+        "mention": [],
+        "default_state": "active",
+    },
 }
 
 
@@ -228,6 +235,13 @@ def module_for_slash(command_name):
     return "misc"
 
 
+def slash_allowed_in_guild(command_name, guild_id):
+    module = module_for_slash(command_name)
+    if module != "minecraft":
+        return True
+    return guild_id == MINECRAFT_GUILD_ID
+
+
 def module_for_mention(keyword):
     keyword = normalize_mention_keyword(keyword)
     for module, meta in MODULES.items():
@@ -257,10 +271,12 @@ def mention_command_list(command_names):
     return ", ".join(mention_command_label(name) for name in command_names) or "None"
 
 
-def visible_slash_commands(guild_config):
+def visible_slash_commands(guild_config, guild_id=None):
     visible = set(VISIBLE_CORE_COMMANDS)
     for module, meta in MODULES.items():
         if module == CORE_MODULE:
+            continue
+        if module == "minecraft" and guild_id != MINECRAFT_GUILD_ID:
             continue
         if get_module_state(guild_config, module) in {"active", "debug"}:
             visible.update(meta.get("slash", []))
