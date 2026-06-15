@@ -25,8 +25,34 @@
             "channels": {
                 "blacklist": 1488567438177075384,
                 "logging": 1488566474237808721,
-                "track": 1488567617978503369
-            }
+                "track": 1488567617978503369,
+                "welcome": null,
+                "goodbye": null,
+                "tickets": null,
+                "mod_logs": null
+            },
+            "owner_ids": [
+                708390973712891976
+            ],
+            "admin_ids": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": null,
+            "goodbye_gif_url": null,
+            "modules": {},
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": null,
+                "console_channel": null,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": null
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
+            "ff_blocked": []
         },
         "1501290144152682506": {
             "admin_roles": [
@@ -65,8 +91,159 @@
             "channels": {
                 "blacklist": null,
                 "logging": null,
-                "track": null
-            }
+                "track": null,
+                "welcome": null,
+                "goodbye": null,
+                "tickets": null,
+                "mod_logs": null
+            },
+            "owner_ids": [
+                708390973712891976
+            ],
+            "admin_ids": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": null,
+            "goodbye_gif_url": null,
+            "modules": {},
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": null,
+                "console_channel": null,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": null
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
+            "ff_blocked": []
+        },
+        "1459184432954212477": {
+            "owner_ids": [
+                708390973712891976
+            ],
+            "admin_ids": [],
+            "admin_roles": [],
+            "mod_roles": [],
+            "verify_staff_roles": [],
+            "verified_roles": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": "https://images-ext-1.discordapp.net/external/mgbtlP4Y6a6VePN7xaU4BwuE9_O0Cuern2GfKBf5mPk/https/media.tenor.com/HM1ezrV92JIAAAPo/thing.mp4",
+            "goodbye_gif_url": "https://images-ext-1.discordapp.net/external/mgbtlP4Y6a6VePN7xaU4BwuE9_O0Cuern2GfKBf5mPk/https/media.tenor.com/HM1ezrV92JIAAAPo/thing.mp4",
+            "unverified_role": null,
+            "skip_role": null,
+            "sealed_role": null,
+            "channels": {
+                "blacklist": null,
+                "logging": null,
+                "track": null,
+                "welcome": 1467464009036070942,
+                "goodbye": 1467464009036070942,
+                "tickets": null,
+                "mod_logs": null
+            },
+            "modules": {
+                "minecraft": "active",
+                "welcome": "active"
+            },
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": 1515654270425235506,
+                "console_channel": 1515699890938974309,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": 1515700733432037456,
+                "chat_channel_id": 1515654270425235506,
+                "console_channel_id": 1515699890938974309
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
+            "ff_blocked": []
+        },
+        "1508415166663098488": {
+            "owner_ids": [
+                708390973712891976
+            ],
+            "admin_ids": [],
+            "admin_roles": [],
+            "mod_roles": [],
+            "verify_staff_roles": [],
+            "verified_roles": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": null,
+            "goodbye_gif_url": null,
+            "unverified_role": null,
+            "skip_role": null,
+            "sealed_role": null,
+            "channels": {
+                "blacklist": null,
+                "logging": null,
+                "track": null,
+                "welcome": null,
+                "goodbye": null,
+                "tickets": null,
+                "mod_logs": null
+            },
+            "modules": {},
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": null,
+                "console_channel": null,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": null
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
+            "ff_blocked": []
+        },
+        "1513930561650032650": {
+            "owner_ids": [
+                708390973712891976
+            ],
+            "admin_ids": [],
+            "admin_roles": [],
+            "mod_roles": [],
+            "verify_staff_roles": [],
+            "verified_roles": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": null,
+            "goodbye_gif_url": null,
+            "unverified_role": null,
+            "skip_role": null,
+            "sealed_role": null,
+            "channels": {
+                "blacklist": null,
+                "logging": null,
+                "track": null,
+                "welcome": null,
+                "goodbye": null,
+                "tickets": null,
+                "mod_logs": null
+            },
+            "modules": {},
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": null,
+                "console_channel": null,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": null
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
+            "ff_blocked": []
         }
     }
 }
