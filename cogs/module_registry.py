@@ -138,6 +138,11 @@ MODULES = {
         "slash": [],
         "mention": [],
     },
+    "verify": {
+        "extension": "cogs.verify",
+        "slash": [],
+        "mention": ["verify"],
+    },
     "misc": {
         "extension": "cogs.misc_tools",
         "slash": [],

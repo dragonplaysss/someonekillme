@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 
 from cogs.mongo_client import get_mongo_database
-from cogs.module_registry import MODULES, mention_command_list
+from cogs.module_registry import MODULES, get_module_state, mention_command_list
 from cogs.server_config import get_guild_config, is_admin, is_owner_id, is_panel_owner, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
@@ -36,6 +36,11 @@ class MiscToolsCog(commands.Cog):
 
     def _can_owner_only(self, message: discord.Message):
         return is_owner_id(message.guild.id, message.author.id)
+
+    def _module_loaded(self, module):
+        meta = MODULES.get(module, {})
+        extensions = meta.get("extensions") or [meta.get("extension")]
+        return all(ext in self.bot.extensions for ext in extensions if ext)
 
     def _format_role(self, guild: discord.Guild, role_id):
         role = guild.get_role(role_id) if role_id else None
@@ -523,6 +528,7 @@ class MiscToolsCog(commands.Cog):
             return await message.channel.send(f"{trigger['target'].mention} lock status: **{status}**")
 
         if keyword == "shorehelp":
+            cfg = get_guild_config(message.guild.id)
             embed = discord.Embed(
                 title="Shorekeeper Commands",
                 description=(
@@ -533,6 +539,8 @@ class MiscToolsCog(commands.Cog):
                 color=0x5865F2,
             )
             for module, meta in MODULES.items():
+                if get_module_state(cfg, module) == "disabled" or not self._module_loaded(module):
+                    continue
                 slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
                 mention = mention_command_list(meta.get("mention", []))
                 value = f"Slash: {slash}\nMention: {mention}"

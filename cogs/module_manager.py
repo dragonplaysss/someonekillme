@@ -202,6 +202,7 @@ class ModuleManager(commands.Cog):
 
     @app_commands.command(name="help", description="Show Shorekeeper handoff commands.")
     async def help(self, interaction: discord.Interaction):
+        cfg = get_guild_config(interaction.guild.id) if interaction.guild else {"modules": {}}
         embed = discord.Embed(
             title="Shorekeeper Commands",
             description=(
@@ -211,6 +212,8 @@ class ModuleManager(commands.Cog):
             color=0x5865F2,
         )
         for module, meta in MODULES.items():
+            if get_module_state(cfg, module) == "disabled" or not self._module_loaded(module):
+                continue
             slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
             mention = mention_command_list(meta.get("mention", []))
             embed.add_field(

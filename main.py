@@ -3,13 +3,16 @@ import json
 import os
 from pathlib import Path
 import sys
+import traceback
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
 from cogs.module_registry import MINECRAFT_GUILD_ID, all_extensions, module_for_slash, slash_allowed_in_guild, visible_slash_commands
 from cogs.server_config import get_guild_config, load_config
+from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -27,6 +30,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 LOCK_HANDLE = None
 
 intents = discord.Intents.all()
+intents.message_content = True
 
 
 SKIP_FILES = {
@@ -59,6 +63,7 @@ class MyBot(commands.Bot):
             "visible": 0,
             "synced": 0,
         }
+        self.tree.on_error = self._on_app_command_error
 
     def load_db(self):
         try:
@@ -74,22 +79,164 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         print("Loading cogs...")
 
-        for cog in all_extensions():
+        print(
+            "[INTENTS] "
+            f"members={self.intents.members} "
+            f"guild_messages={self.intents.guild_messages} "
+            f"message_content={self.intents.message_content} "
+            f"guilds={self.intents.guilds}"
+        )
+
+        for cog in self.discover_extensions():
             try:
+                print(f"[COG SETUP] calling setup() for {cog}")
                 await self.load_extension(cog)
                 print(f"[LOADED] {cog}")
             except commands.ExtensionAlreadyLoaded:
                 pass
             except Exception as e:
                 print(f"[FAILED] {cog}: {type(e).__name__}: {e}")
+                traceback.print_exc()
 
         self.remember_app_commands()
+        self.audit_loaded_cogs()
+        self.audit_command_registry()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
+        print(
+            "[READY INTENTS] "
+            f"message_content={self.intents.message_content}. "
+            "If mention commands log empty content, enable Message Content Intent in the Discord Developer Portal too."
+        )
         if not self._startup_synced:
             self._startup_synced = True
             await self.sync_visible_commands(reason="startup")
+
+    def discover_extensions(self):
+        ordered = []
+        for extension in all_extensions():
+            if extension not in ordered:
+                ordered.append(extension)
+
+        for path in sorted((BASE_DIR / "cogs").rglob("*.py")):
+            if path.name in SKIP_FILES:
+                continue
+            if path.name.startswith("_"):
+                continue
+            module_path = ".".join(path.relative_to(BASE_DIR).with_suffix("").parts)
+            if module_path not in ordered:
+                ordered.append(module_path)
+
+        return ordered
+
+    async def on_message(self, message):
+        print(
+            "[MSG RECEIVED] "
+            f"guild={getattr(message.guild, 'id', None)} "
+            f"channel={getattr(message.channel, 'id', None)} "
+            f"author={getattr(message.author, 'id', None)} "
+            f"bot_author={getattr(message.author, 'bot', None)} "
+            f"content_len={len(message.content or '')} "
+            f"mentions={[getattr(user, 'id', None) for user in getattr(message, 'mentions', [])]}"
+        )
+
+        trigger = parse_shorekeeper_trigger(self, message, debug=True)
+        if trigger:
+            module = trigger.get("module")
+            found = self.mention_command_registered(trigger["keyword"])
+            print(
+                "[MENTION COMMAND FOUND] "
+                f"keyword={trigger['raw_keyword']}->{trigger['keyword']} "
+                f"module={module or 'unknown'} "
+                f"registered={found}"
+            )
+        elif self.user and self.user.mentioned_in(message):
+            print("[MENTION COMMAND STOP] bot was mentioned, but no executable trigger was parsed.")
+
+        await self.process_commands(message)
+
+    async def on_command(self, ctx):
+        print(f"[PREFIX COMMAND INVOKED] command={ctx.command.qualified_name} author={ctx.author.id} guild={getattr(ctx.guild, 'id', None)}")
+
+    async def on_command_completion(self, ctx):
+        print(f"[PREFIX COMMAND COMPLETED] command={ctx.command.qualified_name} author={ctx.author.id} guild={getattr(ctx.guild, 'id', None)}")
+
+    async def on_command_error(self, ctx, error):
+        print(
+            f"[PREFIX COMMAND ERROR] command={getattr(ctx.command, 'qualified_name', None)} "
+            f"author={getattr(ctx.author, 'id', None)} error={type(error).__name__}: {error}"
+        )
+        traceback.print_exception(type(error), error, error.__traceback__)
+
+    async def on_error(self, event_method, *args, **kwargs):
+        print(f"[DISCORD EVENT ERROR] event={event_method}")
+        traceback.print_exc()
+
+    async def _on_app_command_error(self, interaction, error):
+        command_name = getattr(getattr(interaction, "command", None), "qualified_name", None)
+        print(
+            f"[SLASH COMMAND ERROR] command={command_name} "
+            f"user={getattr(getattr(interaction, 'user', None), 'id', None)} "
+            f"guild={getattr(getattr(interaction, 'guild', None), 'id', None)} "
+            f"error={type(error).__name__}: {error}"
+        )
+        traceback.print_exception(type(error), error, error.__traceback__)
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send("Command failed. Check bot logs for traceback.", ephemeral=True)
+            else:
+                await interaction.response.send_message("Command failed. Check bot logs for traceback.", ephemeral=True)
+        except Exception:
+            traceback.print_exc()
+
+    def mention_command_registered(self, keyword):
+        from cogs.module_registry import MODULES, normalize_mention_keyword
+
+        normalized = normalize_mention_keyword(keyword)
+        return any(normalized in {item.lower() for item in meta.get("mention", [])} for meta in MODULES.values())
+
+    def audit_loaded_cogs(self):
+        print("[COG AUDIT]")
+        for name, cog in sorted(self.cogs.items()):
+            commands_for_cog = list(cog.get_commands())
+            listeners = cog.get_listeners()
+            aliases = []
+            for command in commands_for_cog:
+                aliases.extend(getattr(command, "aliases", []) or [])
+            print(
+                f"  cog={name} commands={len(commands_for_cog)} "
+                f"aliases={aliases or []} "
+                f"listeners={[listener_name for listener_name, _ in listeners]}"
+            )
+
+    def audit_command_registry(self):
+        print("[PREFIX COMMAND REGISTRY]")
+        prefix_count = 0
+        hybrid_count = 0
+        for command in sorted(self.walk_commands(), key=lambda cmd: cmd.qualified_name):
+            prefix_count += 1
+            if isinstance(command, commands.HybridCommand):
+                hybrid_count += 1
+            print(
+                f"  command={command.qualified_name} "
+                f"type={'hybrid' if isinstance(command, commands.HybridCommand) else 'prefix'} "
+                f"aliases={getattr(command, 'aliases', []) or []} "
+                f"enabled={command.enabled}"
+            )
+        if prefix_count == 0:
+            print("  (none)")
+        print(f"[PREFIX COMMAND TOTAL] prefix={prefix_count} hybrid={hybrid_count}")
+
+        print("[SLASH COMMAND REGISTRY]")
+        for command in self._all_known_commands():
+            self._print_app_command(command)
+
+    def _print_app_command(self, command, parent=None):
+        name = f"{parent} {command.name}" if parent else command.name
+        print(f"  slash=/{name} type={type(command).__name__}")
+        for child in getattr(command, "commands", []) or []:
+            self._print_app_command(child, parent=name)
 
     def _flatten_commands(self, commands):
         groups = []
@@ -381,6 +528,8 @@ def acquire_instance_lock():
         except OSError as exc:
             raise RuntimeError("Another Shorekeeper bot process is already running.") from exc
 
+    LOCK_HANDLE.seek(0)
+    LOCK_HANDLE.truncate()
     LOCK_HANDLE.write(str(os.getpid()))
     LOCK_HANDLE.flush()
 
