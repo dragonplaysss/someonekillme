@@ -1,16 +1,7 @@
 CORE_MODULE = "core"
 MINECRAFT_GUILD_ID = 1459184432954212477
+ROBLOX_AUTH_GUILD_ID = 1528882609042755584
 MODULE_STATES = {"active", "hidden", "disabled", "debug"}
-VISIBLE_CORE_COMMANDS = {
-    "help",
-    "settings",
-    "status",
-    "enablecommands",
-    "disablecommands",
-    "addserveradmin",
-    "removeserveradmin",
-    "serveradmins",
-}
 
 COMMAND_ALIASES = {
     "commands": "shorehelp",
@@ -178,6 +169,25 @@ MODULES = {
         "slash": ["mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo"],
         "mention": [],
         "default_state": "active",
+        "guild_ids": [MINECRAFT_GUILD_ID],
+    },
+    "roblox_auth": {
+        "extension": "cogs.roblox_auth",
+        "slash": [
+            "rbxmanagerrole",
+            "rbxadd",
+            "rbxedit",
+            "rbxremove",
+            "rbxlist",
+            "rbxinfo",
+            "approveauth",
+            "rejectauth",
+            "revokeauth",
+            "activeapprovals",
+        ],
+        "mention": ["robloxauth"],
+        "default_state": "active",
+        "guild_ids": [ROBLOX_AUTH_GUILD_ID],
     },
 }
 
@@ -193,6 +203,7 @@ def normalize_module_name(name):
         "webhooks": "embed",
         "embeds": "embed",
         "mod": "moderation",
+        "roblox": "roblox_auth",
     }
     return aliases.get(lowered, lowered)
 
@@ -232,6 +243,33 @@ def all_extensions():
     return seen
 
 
+def module_extensions(module):
+    meta = MODULES.get(module, {})
+    return [extension for extension in (meta.get("extensions") or [meta.get("extension")]) if extension]
+
+
+def module_for_extension(extension):
+    for module in module_names():
+        if extension in module_extensions(module):
+            return module
+    return None
+
+
+def restricted_guild_ids():
+    guild_ids = set()
+    for meta in MODULES.values():
+        guild_ids.update(int(guild_id) for guild_id in meta.get("guild_ids", []))
+    return guild_ids
+
+
+def module_allowed_in_guild(module, guild_id):
+    meta = MODULES.get(module, {})
+    guild_ids = {int(guild_id) for guild_id in meta.get("guild_ids", [])}
+    if not guild_ids:
+        return True
+    return guild_id in guild_ids
+
+
 def module_for_slash(command_name):
     command_name = (command_name or "").lower()
     for module, meta in MODULES.items():
@@ -240,11 +278,14 @@ def module_for_slash(command_name):
     return "misc"
 
 
+def slash_commands_for_module(module):
+    meta = MODULES.get(module, {})
+    return {name.lower() for name in meta.get("slash", [])}
+
+
 def slash_allowed_in_guild(command_name, guild_id):
     module = module_for_slash(command_name)
-    if module != "minecraft":
-        return True
-    return guild_id == MINECRAFT_GUILD_ID
+    return module_allowed_in_guild(module, guild_id)
 
 
 def module_for_mention(keyword):
@@ -277,15 +318,15 @@ def mention_command_list(command_names):
 
 
 def visible_slash_commands(guild_config, guild_id=None):
-    visible = set(VISIBLE_CORE_COMMANDS)
+    visible = {CORE_MODULE}
     for module, meta in MODULES.items():
         if module == CORE_MODULE:
             continue
-        if module == "minecraft" and guild_id != MINECRAFT_GUILD_ID:
+        if not module_allowed_in_guild(module, guild_id):
             continue
         if get_module_state(guild_config, module) in {"active", "debug"}:
-            visible.update(meta.get("slash", []))
-    return {name.lower() for name in visible}
+            visible.add(module)
+    return visible
 
 
 def module_names():

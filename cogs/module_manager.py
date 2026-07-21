@@ -83,12 +83,17 @@ class ModuleManager(commands.Cog):
     def _module_lines(self, guild):
         cfg = get_guild_config(guild.id)
         lines = []
-        for module in module_names():
-            state = get_module_state(cfg, module).upper()
-            loaded = self._module_loaded(module)
-            marker = "loaded" if loaded else "not loaded"
-            lines.append(f"`{module}`: **{state}** ({marker})")
+        for module in self._active_module_names(cfg):
+            lines.append(f"`{module}`: **ACTIVE** (loaded)")
         return lines
+
+    def _active_module_names(self, guild_config):
+        return [
+            module
+            for module in module_names()
+            if get_module_state(guild_config, module) != "disabled"
+            and self._module_loaded(module)
+        ]
 
     def _module_loaded(self, module):
         meta = MODULES.get(module, {})
@@ -211,9 +216,8 @@ class ModuleManager(commands.Cog):
             ),
             color=0x5865F2,
         )
-        for module, meta in MODULES.items():
-            if get_module_state(cfg, module) == "disabled" or not self._module_loaded(module):
-                continue
+        for module in self._active_module_names(cfg):
+            meta = MODULES[module]
             slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
             mention = mention_command_list(meta.get("mention", []))
             embed.add_field(

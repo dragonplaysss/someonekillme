@@ -1,3 +1,10 @@
 {
-    "guilds": {}
+    "guilds": {
+        "1409162283216535606": {
+            "account_manager_role": null
+        },
+        "1528882609042755584": {
+            "account_manager_role": 1528898106148520036
+        }
+    }
 }

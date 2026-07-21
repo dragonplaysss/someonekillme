@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 
 from cogs.mongo_client import get_mongo_database
-from cogs.module_registry import MODULES, get_module_state, mention_command_list
+from cogs.module_registry import MODULES, get_module_state, mention_command_list, module_names
 from cogs.server_config import get_guild_config, is_admin, is_owner_id, is_panel_owner, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
@@ -41,6 +41,14 @@ class MiscToolsCog(commands.Cog):
         meta = MODULES.get(module, {})
         extensions = meta.get("extensions") or [meta.get("extension")]
         return all(ext in self.bot.extensions for ext in extensions if ext)
+
+    def _active_module_names(self, guild_config):
+        return [
+            module
+            for module in module_names()
+            if get_module_state(guild_config, module) != "disabled"
+            and self._module_loaded(module)
+        ]
 
     def _format_role(self, guild: discord.Guild, role_id):
         role = guild.get_role(role_id) if role_id else None
@@ -538,44 +546,53 @@ class MiscToolsCog(commands.Cog):
                 ),
                 color=0x5865F2,
             )
-            for module, meta in MODULES.items():
-                if get_module_state(cfg, module) == "disabled" or not self._module_loaded(module):
-                    continue
+            active_modules = self._active_module_names(cfg)
+            active_mentions = set()
+            for module in active_modules:
+                meta = MODULES[module]
+                active_mentions.update(name.lower() for name in meta.get("mention", []))
                 slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
                 mention = mention_command_list(meta.get("mention", []))
                 value = f"Slash: {slash}\nMention: {mention}"
                 embed.add_field(name=module.title(), value=value[:1024], inline=False)
-            embed.add_field(
-                name="Ticket Syntax",
-                value=(
-                    "`@Shorekeeper transcripttk`\n"
-                    "`@Shorekeeper transcript`\n"
-                    "`@Shorekeeper closeticket`\n"
-                    "`@Shorekeeper close`\n"
-                    "`@Shorekeeper deletetk`\n"
-                    "`@Shorekeeper deltk`\n"
-                    "`@Shorekeeper addtoticket @user_or_id`\n"
-                    "`@Shorekeeper addtk @user_or_id`\n"
-                    "`@Shorekeeper removefromticket @user_or_id`\n"
-                    "`@Shorekeeper remtk @user_or_id`"
-                ),
-                inline=False,
-            )
-            embed.add_field(
-                name="Useful Examples",
-                value=(
-                    "`@Shorekeeper afk reason` or `@Shorekeeper afk ; reason`\n"
-                    "`@Shorekeeper giverole @user ; role name | reason`\n"
-                    "`@Shorekeeper locknick @user ; nickname`\n"
-                    "`@Shorekeeper ffcheck` with an attached flags file"
-                ),
-                inline=False,
-            )
-            embed.add_field(
-                name="Legacy Prefix",
-                value="`!logs`, `!addtoticket @user`, `!removefromticket @user`",
-                inline=False,
-            )
+            if "transcripttk" in active_mentions:
+                embed.add_field(
+                    name="Ticket Syntax",
+                    value=(
+                        "`@Shorekeeper transcripttk`\n"
+                        "`@Shorekeeper transcript`\n"
+                        "`@Shorekeeper closeticket`\n"
+                        "`@Shorekeeper close`\n"
+                        "`@Shorekeeper deletetk`\n"
+                        "`@Shorekeeper deltk`\n"
+                        "`@Shorekeeper addtoticket @user_or_id`\n"
+                        "`@Shorekeeper addtk @user_or_id`\n"
+                        "`@Shorekeeper removefromticket @user_or_id`\n"
+                        "`@Shorekeeper remtk @user_or_id`"
+                    ),
+                    inline=False,
+                )
+            examples = []
+            if "afk" in active_mentions:
+                examples.append("`@Shorekeeper afk reason` or `@Shorekeeper afk ; reason`")
+            if "giverole" in active_mentions:
+                examples.append("`@Shorekeeper giverole @user ; role name | reason`")
+            if "locknick" in active_mentions:
+                examples.append("`@Shorekeeper locknick @user ; nickname`")
+            if "ffcheck" in active_mentions:
+                examples.append("`@Shorekeeper ffcheck` with an attached flags file")
+            if examples:
+                embed.add_field(name="Useful Examples", value="\n".join(examples), inline=False)
+
+            prefix_examples = []
+            if self.bot.get_command("logs"):
+                prefix_examples.append("`!logs`")
+            if self.bot.get_command("addtoticket"):
+                prefix_examples.append("`!addtoticket @user`")
+            if self.bot.get_command("removefromticket"):
+                prefix_examples.append("`!removefromticket @user`")
+            if prefix_examples:
+                embed.add_field(name="Legacy Prefix", value=", ".join(prefix_examples), inline=False)
             return await message.channel.send(embed=embed)
 
 
