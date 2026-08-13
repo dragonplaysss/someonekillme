@@ -46,6 +46,7 @@ MODULES = {
             "addserveradmin",
             "removeserveradmin",
             "serveradmins",
+            "snipeconfig",
         ],
         "mention": ["health", "module", "update", "resync", "shorehelp", "ping", "whoami", "config", "showconfig", "verifyconfig"],
     },
@@ -188,6 +189,12 @@ MODULES = {
         ],
         "mention": ["robloxauth"],
         "default_state": "active",
+    },
+    "roblox_snipe": {
+        "extension": "cogs.roblox_snipe",
+        "slash": ["snipe"],
+        "mention": ["snipe"],
+        "default_state": "disabled",
     },
 }
 

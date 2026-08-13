@@ -28,6 +28,8 @@ DEFAULT_GUILD = {
     "skip_role": None,
     "sealed_role": None,
     "immunity_role": None,
+    "snipe_role": None,
+    "snipe_cooldown_seconds": 20,
     "channels": {
         "blacklist": None,
         "logging": None,
@@ -36,6 +38,7 @@ DEFAULT_GUILD = {
         "goodbye": None,
         "tickets": None,
         "mod_logs": None,
+        "dashboard": None,
     },
     "modules": {},
     "minecraft": {

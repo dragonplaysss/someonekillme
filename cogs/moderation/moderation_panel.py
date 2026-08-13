@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from cogs.mod_config import get_mod_guild_config, update_mod_guild_config
+from cogs.module_registry import get_module_state, set_module_state
 from cogs.server_config import (
     get_authorized_roblox_auth_guild_ids,
     get_guild_config,
@@ -26,6 +27,7 @@ SINGLE_ROLE_KEYS = {
     "skip": "skip_role",
     "sealed": "sealed_role",
     "immunity": "immunity_role",
+    "snipe": "snipe_role",
 }
 
 CHANNEL_KEYS = {
@@ -85,6 +87,7 @@ class CategorySelect(discord.ui.Select):
             discord.SelectOption(label="Roles", value="roles", description="Admin, mod, verified, immunity roles"),
             discord.SelectOption(label="Channels", value="channels", description="Logs, tickets, verification, dashboard channels"),
             discord.SelectOption(label="Roblox Auth", value="roblox", description="Manager role and guild authorization status"),
+            discord.SelectOption(label="Roblox Snipe", value="roblox_snipe", description="Snipe role, cooldown, and module state"),
             discord.SelectOption(label="Security", value="security", description="Panel Owner and immunity status"),
             discord.SelectOption(label="Modules", value="modules", description="Module controls and command visibility"),
         ]
@@ -110,6 +113,10 @@ class CategoryView(PanelBaseView):
             self.add_item(ConfigButton("Set Channel", "channel_set", discord.ButtonStyle.primary))
         elif category == "roblox":
             self.add_item(ConfigButton("Set Manager Role", "rbx_manager", discord.ButtonStyle.primary))
+        elif category == "roblox_snipe":
+            self.add_item(ConfigButton("Set Snipe Role", "snipe_role", discord.ButtonStyle.primary))
+            self.add_item(ConfigButton("Set Cooldown", "snipe_cooldown", discord.ButtonStyle.secondary))
+            self.add_item(ConfigButton("Toggle Snipe", "snipe_toggle", discord.ButtonStyle.success))
         elif category == "owner":
             self.add_item(ConfigButton("Authorized Guilds", "owner_guilds", discord.ButtonStyle.primary, owner_only=True))
         self.add_item(BackButton())
@@ -133,6 +140,23 @@ class ConfigButton(discord.ui.Button):
             return await interaction.response.send_modal(ChannelConfigModal())
         if self.action == "rbx_manager":
             return await interaction.response.send_modal(RobloxManagerRoleModal())
+        if self.action == "snipe_role":
+            return await interaction.response.send_modal(SnipeRoleModal())
+        if self.action == "snipe_cooldown":
+            return await interaction.response.send_modal(SnipeCooldownModal())
+        if self.action == "snipe_toggle":
+            cfg = get_guild_config(interaction.guild.id)
+            enabled = get_module_state(cfg, "roblox_snipe") in {"active", "debug"}
+
+            def updater(config):
+                set_module_state(config, "roblox_snipe", "disabled" if enabled else "active")
+
+            update_guild_config(interaction.guild.id, updater)
+            await interaction.response.defer()
+            syncer = getattr(view.bot, "sync_visible_commands", None)
+            if syncer:
+                await syncer(interaction.guild, reason="snipe panel toggle")
+            return await interaction.edit_original_response(embed=build_category_embed(interaction.guild, "roblox_snipe", view.bot), view=view)
         if self.action == "owner_guilds":
             ids = get_authorized_roblox_auth_guild_ids()
             lines = [f"- `{gid}` {view.bot.get_guild(gid).name if view.bot.get_guild(gid) else ''}" for gid in ids]
@@ -154,7 +178,7 @@ class RoleConfigModal(discord.ui.Modal):
     role_id = discord.ui.TextInput(label="Role ID")
     role_type = discord.ui.TextInput(
         label="Type",
-        placeholder="admin, mod, verify_staff, verified, ticket_ping, unverified, skip, sealed, immunity",
+        placeholder="admin, mod, verify_staff, verified, ticket_ping, unverified, skip, sealed, immunity, snipe",
     )
 
     def __init__(self, add: bool):
@@ -224,6 +248,34 @@ class RobloxManagerRoleModal(discord.ui.Modal, title="Set Roblox Auth Manager Ro
         await interaction.response.send_message("Roblox Auth manager role saved.", ephemeral=True)
 
 
+class SnipeRoleModal(discord.ui.Modal, title="Set Roblox Snipe Role"):
+    role_id = discord.ui.TextInput(label="Role ID")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
+            return await interaction.response.send_message("No permission.", ephemeral=True)
+        try:
+            role_id = int(self.role_id.value.strip())
+        except ValueError:
+            return await interaction.response.send_message("Role ID must be numeric.", ephemeral=True)
+        update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_role": role_id}))
+        await interaction.response.send_message("Roblox Snipe role saved.", ephemeral=True)
+
+
+class SnipeCooldownModal(discord.ui.Modal, title="Set Roblox Snipe Cooldown"):
+    seconds = discord.ui.TextInput(label="Cooldown Seconds", placeholder="5-300")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
+            return await interaction.response.send_message("No permission.", ephemeral=True)
+        try:
+            value = max(5, min(300, int(self.seconds.value.strip())))
+        except ValueError:
+            return await interaction.response.send_message("Cooldown must be a number.", ephemeral=True)
+        update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_cooldown_seconds": value}))
+        await interaction.response.send_message(f"Roblox Snipe cooldown saved: `{value}s`.", ephemeral=True)
+
+
 def build_home_embed(guild: discord.Guild):
     cfg = get_guild_config(guild.id)
     embed = discord.Embed(
@@ -259,6 +311,16 @@ def build_category_embed(guild: discord.Guild, category: str, bot):
         embed.add_field(name="Manager Role", value=_role_label(guild, mod_cfg.get("account_manager_role")), inline=True)
         embed.add_field(name="Guild Authorized", value=str(guild.id in get_authorized_roblox_auth_guild_ids()), inline=True)
         embed.add_field(name="Owner Commands", value="`/rbxauthguild add`, `remove`, `list`", inline=False)
+    elif category == "roblox_snipe":
+        embed.add_field(name="Roblox Snipe", value=get_module_state(cfg, "roblox_snipe").title(), inline=True)
+        embed.add_field(name="Snipe Role", value=_role_label(guild, cfg.get("snipe_role")), inline=True)
+        embed.add_field(name="Cooldown", value=f"{cfg.get('snipe_cooldown_seconds', 20)} seconds", inline=True)
+        embed.add_field(name="Authorized", value="Yes" if get_module_state(cfg, "roblox_snipe") in {"active", "debug"} else "No", inline=True)
+        embed.add_field(
+            name="Commands",
+            value="`/snipe`, `/snipeconfig enabled`, `/snipeconfig role`, `/snipeconfig cooldown`, `@Shorekeeper snipe username`",
+            inline=False,
+        )
     elif category == "security":
         embed.add_field(name="Panel Owner", value="Configured globally", inline=True)
         embed.add_field(name="Panel Owner Immunity", value="All bot moderation actions", inline=True)
