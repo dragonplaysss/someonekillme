@@ -16,11 +16,27 @@ from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
-HTTP_TIMEOUT = aiohttp.ClientTimeout(total=8)
+HTTP_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5, sock_connect=5, sock_read=10)
 USER_CACHE_TTL = 300
 GAME_CACHE_TTL = 300
 PRESENCE_CACHE_TTL = 8
 MAX_CONCURRENT_SEARCHES = 4
+TRANSIENT_STATUSES = {429, 502, 503, 504}
+
+
+class RobloxSnipeRequestError(RuntimeError):
+    def __init__(self, endpoint: str, message: str, status: Optional[int] = None):
+        super().__init__(message)
+        self.endpoint = endpoint
+        self.status = status
+
+
+class RobloxSnipeTimeout(RobloxSnipeRequestError):
+    pass
+
+
+class RobloxRateLimited(RobloxSnipeRequestError):
+    pass
 
 
 @dataclass
@@ -32,6 +48,7 @@ class CacheEntry:
 @dataclass
 class SnipeResult:
     username: str
+    state: str = "UNKNOWN"
     display_name: Optional[str] = None
     user_id: Optional[int] = None
     avatar_url: Optional[str] = None
@@ -44,6 +61,7 @@ class SnipeResult:
     server_verified: bool = False
     server_status: str = "Unknown"
     error: Optional[str] = None
+    error_endpoint: Optional[str] = None
     search_seconds: float = 0.0
 
 
@@ -105,6 +123,24 @@ class RobloxSnipeCog(commands.Cog):
         self.guild_cooldowns: dict[int, float] = {}
         self.roblox_backoff_until = 0.0
         self.search_semaphore = asyncio.Semaphore(MAX_CONCURRENT_SEARCHES)
+        self.session: Optional[aiohttp.ClientSession] = None
+
+    def create_http_session(self) -> aiohttp.ClientSession:
+        return aiohttp.ClientSession(
+            timeout=HTTP_TIMEOUT,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "User-Agent": "Shorekeeper-Roblox-Snipe/1.0",
+            },
+        )
+
+    async def cog_load(self):
+        self.session = self.create_http_session()
+
+    async def cog_unload(self):
+        if self.session and not self.session.closed:
+            await self.session.close()
 
     def module_enabled(self, guild: Optional[discord.Guild]) -> bool:
         if not guild:
@@ -166,22 +202,102 @@ class RobloxSnipeCog(commands.Cog):
         cache[key] = CacheEntry(value=value, expires_at=_now() + ttl)
         return value
 
-    async def request_json(self, method: str, url: str, **kwargs):
+    async def request_json(self, method: str, url: str, endpoint: str, retries: int = 1, **kwargs):
         if self.roblox_backoff_until > _now():
-            raise RuntimeError("Roblox recently rate limited requests. Try again shortly.")
-        async with aiohttp.ClientSession(timeout=HTTP_TIMEOUT) as session:
-            async with session.request(method, url, **kwargs) as response:
-                if response.status == 429:
-                    retry_after = response.headers.get("Retry-After")
-                    try:
-                        delay = int(retry_after) if retry_after else 30
-                    except ValueError:
-                        delay = 30
-                    self.roblox_backoff_until = _now() + max(10, min(120, delay))
-                    raise RuntimeError("Roblox rate limited this request. Try again later.")
-                if response.status >= 400:
-                    raise RuntimeError(f"Roblox API returned HTTP {response.status}.")
-                return await response.json()
+            raise RobloxRateLimited(endpoint, "Roblox recently rate limited requests. Try again shortly.", 429)
+        if not self.session or self.session.closed:
+            raise RobloxSnipeRequestError(endpoint, "Roblox Snipe HTTP session is not initialized.")
+
+        attempt = 0
+        while True:
+            attempt += 1
+            started = _now()
+            payload_size = len(str(kwargs.get("json", ""))) if "json" in kwargs else 0
+            params = kwargs.get("params")
+            print(
+                f"[ROBLOX SNIPE] REQUEST START method={method} endpoint={url} "
+                f"endpoint_name={endpoint} params={params or '-'} json_size={payload_size} attempt={attempt}"
+            )
+            try:
+                async with self.session.request(method, url, **kwargs) as response:
+                    text = await response.text()
+                    duration = _now() - started
+                    print(
+                        f"[ROBLOX SNIPE] RESPONSE status={response.status} endpoint={url} "
+                        f"endpoint_name={endpoint} duration={duration:.3f}s body_size={len(text)}"
+                    )
+                    print(f"[ROBLOX SNIPE] RESPONSE TIME endpoint={url} endpoint_name={endpoint} duration={duration:.3f}s")
+                    if response.status == 429:
+                        retry_after = response.headers.get("Retry-After")
+                        try:
+                            delay = int(retry_after) if retry_after else 30
+                        except ValueError:
+                            delay = 30
+                        self.roblox_backoff_until = _now() + max(10, min(120, delay))
+                        if attempt <= retries:
+                            await asyncio.sleep(min(3, delay))
+                            continue
+                        raise RobloxRateLimited(endpoint, "Roblox rate limited this request. Try again later.", response.status)
+                    if response.status in TRANSIENT_STATUSES and attempt <= retries:
+                        await asyncio.sleep(0.75 * attempt)
+                        continue
+                    if response.status >= 400:
+                        raise RobloxSnipeRequestError(endpoint, f"Roblox API returned HTTP {response.status}.", response.status)
+                    return await response.json(content_type=None)
+            except aiohttp.ConnectionTimeoutError as exc:
+                duration = _now() - started
+                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
+                if attempt <= retries:
+                    await asyncio.sleep(0.75 * attempt)
+                    continue
+                raise RobloxSnipeTimeout(endpoint, f"{endpoint} connection timed out.") from exc
+            except aiohttp.SocketTimeoutError as exc:
+                duration = _now() - started
+                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
+                if attempt <= retries:
+                    await asyncio.sleep(0.75 * attempt)
+                    continue
+                raise RobloxSnipeTimeout(endpoint, f"{endpoint} socket read timed out.") from exc
+            except aiohttp.ServerTimeoutError as exc:
+                duration = _now() - started
+                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
+                if attempt <= retries:
+                    await asyncio.sleep(0.75 * attempt)
+                    continue
+                raise RobloxSnipeTimeout(endpoint, f"{endpoint} server timed out.") from exc
+            except (asyncio.TimeoutError, TimeoutError) as exc:
+                duration = _now() - started
+                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
+                if attempt <= retries:
+                    await asyncio.sleep(0.75 * attempt)
+                    continue
+                raise RobloxSnipeTimeout(endpoint, f"{endpoint} timed out.") from exc
+            except aiohttp.ClientResponseError as exc:
+                duration = _now() - started
+                print(
+                    f"[ROBLOX SNIPE] ERROR endpoint={url} duration={duration:.3f}s "
+                    f"exception_type={type(exc).__name__} status={exc.status} error={exc}"
+                )
+                raise RobloxSnipeRequestError(endpoint, f"{endpoint} response error HTTP {exc.status}.", exc.status) from exc
+            except (aiohttp.ClientConnectionError, aiohttp.ServerDisconnectedError, aiohttp.ClientOSError) as exc:
+                duration = _now() - started
+                print(
+                    f"[ROBLOX SNIPE] ERROR endpoint={url} duration={duration:.3f}s "
+                    f"exception_type={type(exc).__name__} error={exc}"
+                )
+                if attempt <= retries:
+                    await asyncio.sleep(0.75 * attempt)
+                    continue
+                raise RobloxSnipeRequestError(endpoint, f"{endpoint} network error: {type(exc).__name__}") from exc
+            except RobloxSnipeRequestError:
+                raise
+            except Exception as exc:
+                duration = _now() - started
+                print(
+                    f"[ROBLOX SNIPE] ERROR endpoint={url} duration={duration:.3f}s "
+                    f"exception_type={type(exc).__name__} error={exc}"
+                )
+                raise RobloxSnipeRequestError(endpoint, f"{endpoint} error: {type(exc).__name__}") from exc
 
     async def resolve_user(self, username: str):
         key = username.lower()
@@ -189,7 +305,7 @@ class RobloxSnipeCog(commands.Cog):
         if cached:
             return cached
         payload = {"usernames": [username], "excludeBannedUsers": False}
-        data = await self.request_json("POST", "https://users.roblox.com/v1/usernames/users", json=payload)
+        data = await self.request_json("POST", "https://users.roblox.com/v1/usernames/users", endpoint="username_lookup", json=payload)
         users = data.get("data") or []
         if not users:
             return None
@@ -206,7 +322,7 @@ class RobloxSnipeCog(commands.Cog):
         if cached:
             return cached
         payload = {"userIds": [user_id]}
-        data = await self.request_json("POST", "https://presence.roblox.com/v1/presence/users", json=payload)
+        data = await self.request_json("POST", "https://presence.roblox.com/v1/presence/users", endpoint="presence_lookup", json=payload)
         presences = data.get("userPresences") or []
         presence = presences[0] if presences else {}
         return self._store(self.presence_cache, user_id, presence, PRESENCE_CACHE_TTL)
@@ -215,6 +331,7 @@ class RobloxSnipeCog(commands.Cog):
         data = await self.request_json(
             "GET",
             f"https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds={user_id}&size=150x150&format=Png&isCircular=false",
+            endpoint="avatar_lookup",
         )
         items = data.get("data") or []
         return items[0].get("imageUrl") if items else None
@@ -225,7 +342,7 @@ class RobloxSnipeCog(commands.Cog):
         cached = self._cached(self.game_cache, universe_id)
         if cached:
             return cached
-        data = await self.request_json("GET", f"https://games.roblox.com/v1/games?universeIds={universe_id}")
+        data = await self.request_json("GET", f"https://games.roblox.com/v1/games?universeIds={universe_id}", endpoint="game_metadata")
         games = data.get("data") or []
         game = games[0] if games else None
         return self._store(self.game_cache, universe_id, game, GAME_CACHE_TTL)
@@ -239,7 +356,7 @@ class RobloxSnipeCog(commands.Cog):
             url = f"https://games.roblox.com/v1/games/{place_id}/servers/Public?sortOrder=Asc&limit=100"
             if cursor:
                 url += f"&cursor={quote(cursor)}"
-            data = await self.request_json("GET", url)
+            data = await self.request_json("GET", url, endpoint="server_list")
             for server in data.get("data") or []:
                 checked += 1
                 if server.get("id") == job_id:
@@ -253,8 +370,25 @@ class RobloxSnipeCog(commands.Cog):
         start = _now()
         result = SnipeResult(username=username)
         try:
-            user = await self.resolve_user(username)
+            try:
+                user = await self.resolve_user(username)
+            except RobloxRateLimited as exc:
+                result.state = "ROBLOX RATE LIMITED"
+                result.error = str(exc)
+                result.error_endpoint = exc.endpoint
+                return result
+            except RobloxSnipeTimeout as exc:
+                result.state = "USERNAME API ERROR"
+                result.error = "Username lookup timed out."
+                result.error_endpoint = exc.endpoint
+                return result
+            except RobloxSnipeRequestError as exc:
+                result.state = "USERNAME API ERROR"
+                result.error = str(exc)
+                result.error_endpoint = exc.endpoint
+                return result
             if not user:
+                result.state = "USER NOT FOUND"
                 result.error = "User not found."
                 return result
             result.user_id = user["id"]
@@ -266,9 +400,26 @@ class RobloxSnipeCog(commands.Cog):
                 return_exceptions=True,
             )
             if isinstance(presence, Exception):
-                raise presence
+                if isinstance(presence, RobloxRateLimited):
+                    result.state = "ROBLOX RATE LIMITED"
+                    result.error = str(presence)
+                    result.error_endpoint = presence.endpoint
+                elif isinstance(presence, RobloxSnipeTimeout):
+                    result.state = "PRESENCE API ERROR"
+                    result.error = "Presence lookup timed out."
+                    result.error_endpoint = presence.endpoint
+                elif isinstance(presence, RobloxSnipeRequestError):
+                    result.state = "PRESENCE API ERROR"
+                    result.error = str(presence)
+                    result.error_endpoint = presence.endpoint
+                else:
+                    result.state = "GENERAL NETWORK ERROR"
+                    result.error = f"Presence lookup failed: {type(presence).__name__}"
+                return result
             if not isinstance(avatar, Exception):
                 result.avatar_url = avatar
+            elif avatar:
+                print(f"[ROBLOX SNIPE] avatar unavailable: {type(avatar).__name__}: {avatar}")
             result.presence_type = presence.get("userPresenceType")
             result.last_location = presence.get("lastLocation")
             result.place_id = presence.get("placeId") or presence.get("rootPlaceId")
@@ -276,9 +427,11 @@ class RobloxSnipeCog(commands.Cog):
             result.job_id = presence.get("gameId")
 
             if result.presence_type == 0:
+                result.state = "OFFLINE"
                 result.error = "Target is offline or no public presence is available."
                 return result
             if result.presence_type != 2:
+                result.state = "ONLINE - NOT PLAYING"
                 result.error = f"Target is {_presence_label(result.presence_type).lower()}, not in a public game."
                 return result
 
@@ -291,20 +444,38 @@ class RobloxSnipeCog(commands.Cog):
                 result.game_name = game.get("name")
 
             if result.job_id:
+                result.state = "TARGET FOUND - SERVER UNVERIFIED"
+                result.server_status = "Presence returned active server Job ID; public server list verification pending."
                 try:
                     result.server_verified, result.server_status = await self.verify_server(result.place_id, result.job_id)
+                    result.state = "TARGET ACQUIRED - VERIFIED" if result.server_verified else "TARGET FOUND - SERVER UNVERIFIED"
+                except RobloxSnipeTimeout as exc:
+                    print(f"[ROBLOX SNIPE] server verification timeout endpoint={exc.endpoint}: {exc}")
+                    result.server_verified = False
+                    result.state = "SERVER VERIFICATION TIMEOUT"
+                    result.server_status = "Server list verification timed out; presence Job ID preserved."
+                except RobloxRateLimited as exc:
+                    print(f"[ROBLOX SNIPE] server verification rate limited endpoint={exc.endpoint}: {exc}")
+                    result.server_verified = False
+                    result.state = "ROBLOX RATE LIMITED"
+                    result.server_status = "Server list verification rate limited; presence Job ID preserved."
+                except RobloxSnipeRequestError as exc:
+                    print(f"[ROBLOX SNIPE] server verification error endpoint={exc.endpoint}: {exc}")
+                    result.server_verified = False
+                    result.state = "SERVER VERIFICATION ERROR"
+                    result.server_status = "Server list verification unavailable; presence Job ID preserved."
                 except Exception as exc:
                     print(f"[ROBLOX SNIPE] server verification unavailable: {type(exc).__name__}: {exc}")
                     result.server_verified = False
-                    result.server_status = "Server discovery failed; Job ID was not confirmed."
+                    result.state = "SERVER VERIFICATION ERROR"
+                    result.server_status = "Server list verification unavailable; presence Job ID preserved."
             else:
+                result.state = "TARGET FOUND - SERVER UNVERIFIED"
                 result.server_status = "Target is playing, but Roblox presence did not expose a Job ID."
-            return result
-        except asyncio.TimeoutError:
-            result.error = "Roblox API timeout."
             return result
         except Exception as exc:
             print(f"[ROBLOX SNIPE] {type(exc).__name__}: {exc}")
+            result.state = "GENERAL NETWORK ERROR"
             result.error = str(exc)[:160]
             return result
         finally:
@@ -312,8 +483,19 @@ class RobloxSnipeCog(commands.Cog):
 
     def build_result_embed(self, result: SnipeResult) -> discord.Embed:
         if result.error:
-            embed = discord.Embed(title="TARGET NOT FOUND", description=f"`{result.username}`: {result.error}", color=0xED4245, timestamp=_discord_now())
+            title = result.state if result.state in {
+                "USER NOT FOUND",
+                "OFFLINE",
+                "ONLINE - NOT PLAYING",
+                "USERNAME API ERROR",
+                "PRESENCE API ERROR",
+                "ROBLOX RATE LIMITED",
+                "GENERAL NETWORK ERROR",
+            } else "SNIPE ERROR"
+            embed = discord.Embed(title=title, description=f"`{result.username}`: {result.error}", color=0xED4245, timestamp=_discord_now())
             embed.add_field(name="Search Time", value=f"`{result.search_seconds:.1f}s`", inline=True)
+            if result.error_endpoint:
+                embed.add_field(name="Endpoint", value=f"`{result.error_endpoint}`", inline=True)
         elif result.server_verified:
             embed = discord.Embed(title="TARGET ACQUIRED: Direct Presence Match", color=0x57F287, timestamp=_discord_now())
         else:
@@ -337,7 +519,7 @@ class RobloxSnipeCog(commands.Cog):
         if result.job_id:
             embed.add_field(name="Verified Game Instance (Job ID)" if result.server_verified else "Presence Job ID", value=f"`{result.job_id}`", inline=False)
         embed.add_field(name="Server Region", value="Region: `Unknown / Region Locked`", inline=True)
-        embed.add_field(name="Status", value=f"`{result.server_status}`", inline=False)
+        embed.add_field(name="Status", value=f"`{result.state}`\n`{result.server_status}`", inline=False)
         embed.set_footer(text="Verified only with legitimate public Roblox APIs")
         return embed
 
