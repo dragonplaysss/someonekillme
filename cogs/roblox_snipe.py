@@ -1,5 +1,6 @@
 import asyncio
 import re
+import socket
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -126,7 +127,13 @@ class RobloxSnipeCog(commands.Cog):
         self.session: Optional[aiohttp.ClientSession] = None
 
     def create_http_session(self) -> aiohttp.ClientSession:
+        connector = aiohttp.TCPConnector(
+            family=socket.AF_INET,
+            ssl=True,
+            limit=MAX_CONCURRENT_SEARCHES * 4,
+        )
         return aiohttp.ClientSession(
+            connector=connector,
             timeout=HTTP_TIMEOUT,
             headers={
                 "Accept": "application/json",
