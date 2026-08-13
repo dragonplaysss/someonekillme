@@ -97,14 +97,33 @@ class SnipeJoinView(discord.ui.View):
         self.requester_id = requester_id
         self.username = username
         self.last_refresh = 0.0
+        self.place_id = result.place_id
+        self.job_id = result.job_id
 
         if result.place_id and result.job_id:
-            pc_url = f"https://www.roblox.com/games/{result.place_id}?gameInstanceId={quote(result.job_id)}"
-            mobile_url = f"https://www.roblox.com/games/{result.place_id}?gameInstanceId={quote(result.job_id)}"
-            self.add_item(discord.ui.Button(label="PC Join", style=discord.ButtonStyle.link, url=pc_url))
-            self.add_item(discord.ui.Button(label="Mobile Join", style=discord.ButtonStyle.link, url=mobile_url))
+            game_url = f"https://www.roblox.com/games/{result.place_id}"
+            copy_button = discord.ui.Button(label="Copy Join Info", style=discord.ButtonStyle.secondary)
+            copy_button.callback = self.send_join_info
+            self.add_item(copy_button)
+            self.add_item(discord.ui.Button(label="PC Game Page", style=discord.ButtonStyle.link, url=game_url))
+            self.add_item(discord.ui.Button(label="Mobile Game Page", style=discord.ButtonStyle.link, url=game_url))
+            self.add_item(discord.ui.Button(label="Console Game Page", style=discord.ButtonStyle.link, url=game_url))
         elif result.place_id:
             self.add_item(discord.ui.Button(label="Game Page", style=discord.ButtonStyle.link, url=f"https://www.roblox.com/games/{result.place_id}"))
+
+    async def send_join_info(self, interaction: discord.Interaction):
+        if not self.place_id or not self.job_id:
+            return await interaction.response.send_message("No Job ID is available for this result.", ephemeral=True)
+
+        protocol_uri = f"roblox://experiences/start?placeId={self.place_id}&gameInstanceId={quote(self.job_id)}"
+        browser_snippet = f'Roblox.GameLauncher.joinGameInstance({self.place_id}, "{self.job_id}")'
+        await interaction.response.send_message(
+            "Browser Launch:\n"
+            f"```js\n{browser_snippet}\n```\n"
+            "Direct Protocol:\n"
+            f"```\n{protocol_uri}\n```",
+            ephemeral=True,
+        )
 
     @discord.ui.button(label="Refresh Target", style=discord.ButtonStyle.primary)
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -528,6 +547,11 @@ class RobloxSnipeCog(commands.Cog):
             )
         if result.job_id:
             embed.add_field(name="Verified Game Instance (Job ID)" if result.server_verified else "Presence Job ID", value=f"`{result.job_id}`", inline=False)
+            if result.place_id:
+                browser_snippet = f'Roblox.GameLauncher.joinGameInstance({result.place_id}, "{result.job_id}")'
+                protocol_uri = f"roblox://experiences/start?placeId={result.place_id}&gameInstanceId={quote(result.job_id)}"
+                embed.add_field(name="Browser Launch", value=f"```js\n{browser_snippet}\n```", inline=False)
+                embed.add_field(name="Direct Protocol", value=f"```\n{protocol_uri}\n```", inline=False)
         embed.add_field(name="Server Region", value="Region: `Unknown / Region Locked`", inline=True)
         embed.add_field(name="Status", value=f"`{result.state}`\n`{result.server_status}`", inline=False)
         embed.set_footer(text="Verified only with legitimate public Roblox APIs")
