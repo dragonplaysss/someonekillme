@@ -100,7 +100,7 @@ class SnipeJoinView(discord.ui.View):
 
         if result.place_id and result.job_id:
             pc_url = f"https://www.roblox.com/games/{result.place_id}?gameInstanceId={quote(result.job_id)}"
-            mobile_url = f"roblox://experiences/start?placeId={result.place_id}&gameInstanceId={quote(result.job_id)}"
+            mobile_url = f"https://www.roblox.com/games/{result.place_id}?gameInstanceId={quote(result.job_id)}"
             self.add_item(discord.ui.Button(label="PC Join", style=discord.ButtonStyle.link, url=pc_url))
             self.add_item(discord.ui.Button(label="Mobile Join", style=discord.ButtonStyle.link, url=mobile_url))
         elif result.place_id:
