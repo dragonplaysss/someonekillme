@@ -1,12 +1,14 @@
 import asyncio
+import json
 import re
 import socket
 import time
 from dataclasses import dataclass
 from typing import Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
+import urllib.error
+import urllib.request
 
-import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -17,7 +19,12 @@ from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
-HTTP_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5, sock_connect=5, sock_read=10)
+HTTP_TIMEOUT_SECONDS = 15
+HTTP_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "Shorekeeper-Roblox-Snipe/1.0",
+}
 USER_CACHE_TTL = 300
 GAME_CACHE_TTL = 300
 PRESENCE_CACHE_TTL = 8
@@ -124,30 +131,12 @@ class RobloxSnipeCog(commands.Cog):
         self.guild_cooldowns: dict[int, float] = {}
         self.roblox_backoff_until = 0.0
         self.search_semaphore = asyncio.Semaphore(MAX_CONCURRENT_SEARCHES)
-        self.session: Optional[aiohttp.ClientSession] = None
-
-    def create_http_session(self) -> aiohttp.ClientSession:
-        connector = aiohttp.TCPConnector(
-            family=socket.AF_INET,
-            ssl=True,
-            limit=MAX_CONCURRENT_SEARCHES * 4,
-        )
-        return aiohttp.ClientSession(
-            connector=connector,
-            timeout=HTTP_TIMEOUT,
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "User-Agent": "Shorekeeper-Roblox-Snipe/1.0",
-            },
-        )
 
     async def cog_load(self):
-        self.session = self.create_http_session()
+        return None
 
     async def cog_unload(self):
-        if self.session and not self.session.closed:
-            await self.session.close()
+        return None
 
     def module_enabled(self, guild: Optional[discord.Guild]) -> bool:
         if not guild:
@@ -209,11 +198,32 @@ class RobloxSnipeCog(commands.Cog):
         cache[key] = CacheEntry(value=value, expires_at=_now() + ttl)
         return value
 
+    def _roblox_request_sync(self, method: str, url: str, json_payload=None, params=None):
+        if params:
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}{urlencode(params)}"
+
+        body = None
+        if json_payload is not None:
+            body = json.dumps(json_payload).encode("utf-8")
+
+        request = urllib.request.Request(
+            url,
+            data=body,
+            headers=HTTP_HEADERS,
+            method=method.upper(),
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+                text = response.read().decode("utf-8")
+                return response.status, dict(response.headers), text
+        except urllib.error.HTTPError as exc:
+            text = exc.read().decode("utf-8", errors="replace")
+            return exc.code, dict(exc.headers), text
+
     async def request_json(self, method: str, url: str, endpoint: str, retries: int = 1, **kwargs):
         if self.roblox_backoff_until > _now():
             raise RobloxRateLimited(endpoint, "Roblox recently rate limited requests. Try again shortly.", 429)
-        if not self.session or self.session.closed:
-            raise RobloxSnipeRequestError(endpoint, "Roblox Snipe HTTP session is not initialized.")
 
         attempt = 0
         while True:
@@ -226,68 +236,61 @@ class RobloxSnipeCog(commands.Cog):
                 f"endpoint_name={endpoint} params={params or '-'} json_size={payload_size} attempt={attempt}"
             )
             try:
-                async with self.session.request(method, url, **kwargs) as response:
-                    text = await response.text()
-                    duration = _now() - started
-                    print(
-                        f"[ROBLOX SNIPE] RESPONSE status={response.status} endpoint={url} "
-                        f"endpoint_name={endpoint} duration={duration:.3f}s body_size={len(text)}"
-                    )
-                    print(f"[ROBLOX SNIPE] RESPONSE TIME endpoint={url} endpoint_name={endpoint} duration={duration:.3f}s")
-                    if response.status == 429:
-                        retry_after = response.headers.get("Retry-After")
-                        try:
-                            delay = int(retry_after) if retry_after else 30
-                        except ValueError:
-                            delay = 30
-                        self.roblox_backoff_until = _now() + max(10, min(120, delay))
-                        if attempt <= retries:
-                            await asyncio.sleep(min(3, delay))
-                            continue
-                        raise RobloxRateLimited(endpoint, "Roblox rate limited this request. Try again later.", response.status)
-                    if response.status in TRANSIENT_STATUSES and attempt <= retries:
-                        await asyncio.sleep(0.75 * attempt)
+                status, headers, text = await asyncio.to_thread(
+                    self._roblox_request_sync,
+                    method,
+                    url,
+                    kwargs.get("json"),
+                    params,
+                )
+                duration = _now() - started
+                print(
+                    f"[ROBLOX SNIPE] RESPONSE status={status} endpoint={url} "
+                    f"endpoint_name={endpoint} duration={duration:.3f}s body_size={len(text)}"
+                )
+                print(f"[ROBLOX SNIPE] RESPONSE TIME endpoint={url} endpoint_name={endpoint} duration={duration:.3f}s")
+                if status == 429:
+                    retry_after = headers.get("Retry-After")
+                    try:
+                        delay = int(retry_after) if retry_after else 30
+                    except ValueError:
+                        delay = 30
+                    self.roblox_backoff_until = _now() + max(10, min(120, delay))
+                    if attempt <= retries:
+                        await asyncio.sleep(min(3, delay))
                         continue
-                    if response.status >= 400:
-                        raise RobloxSnipeRequestError(endpoint, f"Roblox API returned HTTP {response.status}.", response.status)
-                    return await response.json(content_type=None)
-            except aiohttp.ConnectionTimeoutError as exc:
-                duration = _now() - started
-                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
-                if attempt <= retries:
+                    raise RobloxRateLimited(endpoint, "Roblox rate limited this request. Try again later.", status)
+                if status in TRANSIENT_STATUSES and attempt <= retries:
                     await asyncio.sleep(0.75 * attempt)
                     continue
-                raise RobloxSnipeTimeout(endpoint, f"{endpoint} connection timed out.") from exc
-            except aiohttp.SocketTimeoutError as exc:
+                if status >= 400:
+                    raise RobloxSnipeRequestError(endpoint, f"Roblox API returned HTTP {status}.", status)
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError as exc:
+                    raise RobloxSnipeRequestError(endpoint, f"{endpoint} returned invalid JSON.") from exc
+            except (TimeoutError, socket.timeout) as exc:
                 duration = _now() - started
-                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
-                if attempt <= retries:
-                    await asyncio.sleep(0.75 * attempt)
-                    continue
-                raise RobloxSnipeTimeout(endpoint, f"{endpoint} socket read timed out.") from exc
-            except aiohttp.ServerTimeoutError as exc:
-                duration = _now() - started
-                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
-                if attempt <= retries:
-                    await asyncio.sleep(0.75 * attempt)
-                    continue
-                raise RobloxSnipeTimeout(endpoint, f"{endpoint} server timed out.") from exc
-            except (asyncio.TimeoutError, TimeoutError) as exc:
-                duration = _now() - started
-                print(f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s exception={type(exc).__name__}")
+                print(
+                    f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s "
+                    f"exception={type(exc).__name__} error={exc}"
+                )
                 if attempt <= retries:
                     await asyncio.sleep(0.75 * attempt)
                     continue
                 raise RobloxSnipeTimeout(endpoint, f"{endpoint} timed out.") from exc
-            except aiohttp.ClientResponseError as exc:
+            except urllib.error.URLError as exc:
                 duration = _now() - started
-                print(
-                    f"[ROBLOX SNIPE] ERROR endpoint={url} duration={duration:.3f}s "
-                    f"exception_type={type(exc).__name__} status={exc.status} error={exc}"
-                )
-                raise RobloxSnipeRequestError(endpoint, f"{endpoint} response error HTTP {exc.status}.", exc.status) from exc
-            except (aiohttp.ClientConnectionError, aiohttp.ServerDisconnectedError, aiohttp.ClientOSError) as exc:
-                duration = _now() - started
+                reason = getattr(exc, "reason", None)
+                if isinstance(reason, (TimeoutError, socket.timeout)):
+                    print(
+                        f"[ROBLOX SNIPE] TIMEOUT endpoint={url} duration={duration:.3f}s "
+                        f"exception={type(exc).__name__} error={reason}"
+                    )
+                    if attempt <= retries:
+                        await asyncio.sleep(0.75 * attempt)
+                        continue
+                    raise RobloxSnipeTimeout(endpoint, f"{endpoint} timed out.") from exc
                 print(
                     f"[ROBLOX SNIPE] ERROR endpoint={url} duration={duration:.3f}s "
                     f"exception_type={type(exc).__name__} error={exc}"
