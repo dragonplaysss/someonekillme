@@ -3,7 +3,7 @@ import re
 import discord
 from discord.ext import commands
 
-from cogs.server_config import get_channel_id, is_mod
+from cogs.server_config import get_channel_id, immunity_reason, is_mod
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -33,7 +33,7 @@ class RoleToolsCog(commands.Cog):
             return
         embed = discord.Embed(title=f"Role Action: {action}", color=0xF1C40F)
         embed.add_field(name="Target", value=f"{target.mention} ({target.id})", inline=False)
-        embed.add_field(name="Role", value=f"{role.mention} ({role.id})", inline=False)
+        embed.add_field(name="Role", value=f"{role.mention} ({role.id})" if role else "Not applied", inline=False)
         embed.add_field(name="Moderator", value=moderator.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
         await channel.send(embed=embed)
@@ -56,6 +56,10 @@ class RoleToolsCog(commands.Cog):
         target = trigger["target"]
         if not target:
             return await message.channel.send(f"Use `@Shorekeeper {keyword} @user ; role_name_or_id | optional reason`.")
+        protected = immunity_reason(target, keyword)
+        if protected:
+            await self.send_role_log(message.guild, f"Blocked {keyword}", message.author, target, None, protected)
+            return await message.channel.send(protected)
 
         extra = (trigger["extra"] or "").strip()
         if not extra:

@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from cogs.server_config import get_guild_config, is_admin
+from cogs.server_config import get_guild_config, immunity_reason, is_admin
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -26,6 +26,9 @@ class Verify(commands.Cog):
         target = trigger["target"]
         if not target:
             return await message.channel.send("Mention a user to verify.")
+        protected = immunity_reason(target, "verify")
+        if protected:
+            return await message.channel.send(protected)
 
         try:
             unverified_role_id = cfg.get("unverified_role")

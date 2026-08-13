@@ -4,7 +4,7 @@ import re
 import discord
 from discord.ext import commands
 
-from cogs.server_config import get_channel_id, is_admin, is_mod
+from cogs.server_config import get_channel_id, immunity_reason, is_admin, is_mod
 from cogs.trigger_parser import parse_shorekeeper_trigger
 from cogs.mongo_client import get_mongo_database
 
@@ -74,6 +74,17 @@ class ModerationCore(commands.Cog):
             }
         )
 
+    async def block_if_immune(self, message, target, target_id, action):
+        protected = target if target is not None else target_id
+        reason = immunity_reason(protected, action)
+        if not reason:
+            return False
+        target_label = f"{target.mention} ({target.id})" if target else f"<@{target_id}> ({target_id})"
+        await self.send_mod_log(message.guild, f"Blocked {action.title()}", message.author, target_label, reason)
+        await self.persist_action(message.guild.id, message.author.id, target_id, f"blocked_{action}", reason)
+        await message.channel.send(reason)
+        return True
+
     @commands.Cog.listener()
     async def on_message(self, message):
         try:
@@ -108,6 +119,8 @@ class ModerationCore(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target_id:
                 return await message.channel.send("Use `@Shorekeeper ban @user ; reason`.")
+            if await self.block_if_immune(message, target, target_id, "ban"):
+                return
 
             try:
                 ban_target = target or discord.Object(id=target_id)
@@ -126,6 +139,8 @@ class ModerationCore(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target:
                 return await message.channel.send("Mention a user to kick.")
+            if await self.block_if_immune(message, target, target.id, "kick"):
+                return
 
             try:
                 await target.kick(reason=reason)
@@ -161,6 +176,8 @@ class ModerationCore(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target:
                 return await message.channel.send("Use `@Shorekeeper mute @user ; reason`.")
+            if await self.block_if_immune(message, target, target.id, "mute"):
+                return
 
             try:
                 duration = self.parse_duration(trigger["main"])
@@ -179,6 +196,8 @@ class ModerationCore(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target:
                 return await message.channel.send("Use `@Shorekeeper unmute @user ; reason`.")
+            if await self.block_if_immune(message, target, target.id, "unmute"):
+                return
 
             try:
                 await target.timeout(None, reason=reason)
@@ -195,6 +214,8 @@ class ModerationCore(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target:
                 return await message.channel.send("Use `@Shorekeeper warn @user ; reason`.")
+            if await self.block_if_immune(message, target, target.id, "warn"):
+                return
 
             await self.warns.insert_one(
                 {

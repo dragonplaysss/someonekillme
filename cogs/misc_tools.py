@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from cogs.mongo_client import get_mongo_database
 from cogs.module_registry import MODULES, get_module_state, mention_command_list, module_names
-from cogs.server_config import get_guild_config, is_admin, is_owner_id, is_panel_owner, update_guild_config
+from cogs.server_config import get_guild_config, immunity_reason, is_admin, is_owner_id, is_panel_owner, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -108,8 +108,23 @@ class MiscToolsCog(commands.Cog):
         except Exception:
             return False
 
+    async def _send_security_log(self, guild, action, moderator, target, reason):
+        channel_id = get_guild_config(guild.id).get("channels", {}).get("mod_logs") or get_guild_config(guild.id).get("channels", {}).get("logging")
+        channel = guild.get_channel(channel_id) if channel_id else None
+        if not channel:
+            return
+        embed = discord.Embed(title=f"Security: {action}", color=0xED4245)
+        embed.add_field(name="Target", value=f"{target.mention} ({target.id})", inline=False)
+        embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        await channel.send(embed=embed)
+
     async def _enforce_fun_locks(self, message: discord.Message):
         if message.author.bot:
+            return False
+        if immunity_reason(message.author, "barklock") or immunity_reason(message.author, "uwulock"):
+            await self.bark_locks.delete_one({"guild_id": message.guild.id, "user_id": message.author.id})
+            await self.uwu_locks.delete_one({"guild_id": message.guild.id, "user_id": message.author.id})
             return False
         if await self.bark_locks.find_one({"guild_id": message.guild.id, "user_id": message.author.id}):
             try:
@@ -358,7 +373,7 @@ class MiscToolsCog(commands.Cog):
                 return await message.channel.send(
                     "Use `@Shorekeeper setverify ; key value`.\n"
                     "Keys: `add_verify_staff`, `remove_verify_staff`, `add_verified`, "
-                    "`remove_verified`, `set_unverified`, `set_logging`, `set_mod_logs`"
+                    "`remove_verified`, `set_unverified`, `set_immunity`, `set_logging`, `set_mod_logs`"
                 )
             parts = extra.split(None, 1)
             if len(parts) < 2:
@@ -387,6 +402,8 @@ class MiscToolsCog(commands.Cog):
                         roles.remove(value_id)
                 elif key == "set_unverified":
                     config["unverified_role"] = value_id
+                elif key in {"set_immunity", "immunity_role"}:
+                    config["immunity_role"] = value_id
                 elif key == "set_logging":
                     config.setdefault("channels", {})["logging"] = value_id
                 elif key == "set_mod_logs":
@@ -465,6 +482,9 @@ class MiscToolsCog(commands.Cog):
             target = message.guild.get_member(target_id)
             if not target:
                 return await message.channel.send("Target is not in this server.")
+            protected = immunity_reason(target, f"force_{action}")
+            if protected:
+                return await message.channel.send(protected)
 
             if action == "nick":
                 if len(main) < 2 or not main[1].strip():
@@ -492,6 +512,10 @@ class MiscToolsCog(commands.Cog):
         if keyword == "barklock":
             if not trigger["target"]:
                 return await message.channel.send("Use `@Shorekeeper barklock @user ; reason`.")
+            protected = immunity_reason(trigger["target"], "barklock")
+            if protected:
+                await self._send_security_log(message.guild, "Blocked BarkLock", message.author, trigger["target"], protected)
+                return await message.channel.send(protected)
             await self.bark_locks.update_one(
                 {"guild_id": message.guild.id, "user_id": trigger["target"].id},
                 {"$set": {"by": message.author.id, "timestamp": discord.utils.utcnow()}},
@@ -509,6 +533,10 @@ class MiscToolsCog(commands.Cog):
         if keyword == "uwulock":
             if not trigger["target"]:
                 return await message.channel.send("Use `@Shorekeeper uwulock @user ; reason`.")
+            protected = immunity_reason(trigger["target"], "uwulock")
+            if protected:
+                await self._send_security_log(message.guild, "Blocked UwULock", message.author, trigger["target"], protected)
+                return await message.channel.send(protected)
             await self.uwu_locks.update_one(
                 {"guild_id": message.guild.id, "user_id": trigger["target"].id},
                 {"$set": {"by": message.author.id, "timestamp": discord.utils.utcnow()}},

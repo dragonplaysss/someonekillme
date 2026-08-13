@@ -3,7 +3,7 @@ import re
 import discord
 from discord.ext import commands
 
-from cogs.server_config import is_admin
+from cogs.server_config import immunity_reason, is_admin
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -25,6 +25,9 @@ class Roles(commands.Cog):
         target = trigger["target"]
         if not target:
             return await message.channel.send("Mention a user.")
+        protected = immunity_reason(target, trigger["keyword"])
+        if protected:
+            return await message.channel.send(protected)
 
         try:
             role_ids = [

@@ -8,7 +8,10 @@ PANEL_OWNER_ID = 708390973712891976
 CONFIG_PATH = "cogs/moderation/data2/server_config.json"
 
 DEFAULT_CONFIG = {
-    "guilds": {}
+    "guilds": {},
+    "roblox_auth": {
+        "authorized_guild_ids": [],
+    },
 }
 
 DEFAULT_GUILD = {
@@ -24,6 +27,7 @@ DEFAULT_GUILD = {
     "unverified_role": None,
     "skip_role": None,
     "sealed_role": None,
+    "immunity_role": None,
     "channels": {
         "blacklist": None,
         "logging": None,
@@ -111,6 +115,15 @@ def load_config():
             raise ValueError("Config root must be an object.")
         config.setdefault("guilds", {})
         changed = False
+        if "roblox_auth" not in config:
+            config["roblox_auth"] = deepcopy(DEFAULT_CONFIG["roblox_auth"])
+            changed = True
+        if not isinstance(config.get("roblox_auth"), dict):
+            config["roblox_auth"] = deepcopy(DEFAULT_CONFIG["roblox_auth"])
+            changed = True
+        if "authorized_guild_ids" not in config["roblox_auth"]:
+            config["roblox_auth"]["authorized_guild_ids"] = []
+            changed = True
         for guild_config in config["guilds"].values():
             if isinstance(guild_config, dict):
                 changed = _ensure_guild_defaults(guild_config) or changed
@@ -171,6 +184,14 @@ def update_guild_config(guild_id, updater):
     return guild_config
 
 
+def update_global_config(updater):
+    config = load_config()
+    config.setdefault("roblox_auth", deepcopy(DEFAULT_CONFIG["roblox_auth"]))
+    updater(config)
+    save_config(config)
+    return config
+
+
 def get_role_ids(guild_id, key):
     return get_guild_config(guild_id).get(key, [])
 
@@ -181,6 +202,70 @@ def get_channel_id(guild_id, key):
 
 def is_panel_owner(user_id):
     return user_id == PANEL_OWNER_ID
+
+
+def get_authorized_roblox_auth_guild_ids():
+    config = load_config()
+    ids = config.setdefault("roblox_auth", {}).setdefault("authorized_guild_ids", [])
+    return sorted({int(gid) for gid in ids if str(gid).isdigit()})
+
+
+def is_roblox_auth_guild_authorized(guild_id):
+    if guild_id is None:
+        return False
+    return int(guild_id) in set(get_authorized_roblox_auth_guild_ids())
+
+
+def authorize_roblox_auth_guild(guild_id):
+    gid = int(guild_id)
+
+    def updater(config):
+        ids = config.setdefault("roblox_auth", {}).setdefault("authorized_guild_ids", [])
+        if gid not in ids:
+            ids.append(gid)
+
+    update_global_config(updater)
+
+
+def revoke_roblox_auth_guild(guild_id):
+    gid = int(guild_id)
+
+    def updater(config):
+        ids = config.setdefault("roblox_auth", {}).setdefault("authorized_guild_ids", [])
+        if gid in ids:
+            ids.remove(gid)
+
+    update_global_config(updater)
+
+
+def has_immunity_role(member, action=None):
+    guild = getattr(member, "guild", None)
+    if not guild:
+        return False
+    if action not in {"barklock", "uwulock"}:
+        return False
+    role_id = get_guild_config(guild.id).get("immunity_role")
+    if not role_id:
+        return False
+    return any(role.id == role_id for role in getattr(member, "roles", []))
+
+
+def is_immune(user_or_member, guild=None, action=None):
+    user_id = getattr(user_or_member, "id", user_or_member)
+    if user_id is not None and is_panel_owner(int(user_id)):
+        return True
+    if hasattr(user_or_member, "roles") and has_immunity_role(user_or_member, action):
+        return True
+    return False
+
+
+def immunity_reason(user_or_member, action=None):
+    user_id = getattr(user_or_member, "id", user_or_member)
+    if user_id is not None and is_panel_owner(int(user_id)):
+        return "The Panel Owner is protected and cannot be targeted by bot moderation."
+    if hasattr(user_or_member, "roles") and has_immunity_role(user_or_member, action):
+        return "That member has the configured Immunity Role for this action."
+    return None
 
 
 def is_admin(member):

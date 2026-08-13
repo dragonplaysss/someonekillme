@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from cogs.mongo_client import get_mongo_database
-from cogs.server_config import get_channel_id, is_admin
+from cogs.server_config import get_channel_id, immunity_reason, is_admin
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -34,6 +34,9 @@ class NickLockCog(commands.Cog):
         lock = await self.nick_locks.find_one({"guild_id": after.guild.id, "user_id": after.id})
         if not lock:
             return
+        if immunity_reason(after, "nicklock"):
+            await self.nick_locks.delete_one({"guild_id": after.guild.id, "user_id": after.id})
+            return
 
         locked_nick = lock.get("nick")
         if after.nick == locked_nick:
@@ -60,6 +63,10 @@ class NickLockCog(commands.Cog):
                 return await message.channel.send("No permission.")
             if not target:
                 return await message.channel.send("Use `@Shorekeeper locknick @user ; nickname`.")
+            protected = immunity_reason(target, "nicklock")
+            if protected:
+                await self.send_log(message.guild, "Blocked Lock", message.author, target, protected)
+                return await message.channel.send(protected)
             new_nick = (extra or "").strip()
             if not new_nick:
                 return await message.channel.send("Provide nickname after `;`.")

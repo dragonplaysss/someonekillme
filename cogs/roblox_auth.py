@@ -3,10 +3,12 @@ import binascii
 import os
 import re
 import traceback
+import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Optional
 
+import aiohttp
 import discord
 import pyotp
 from cryptography.fernet import Fernet, InvalidToken
@@ -16,7 +18,15 @@ from discord.ext import commands
 from cogs.mod_config import get_mod_guild_config, update_mod_guild_config
 from cogs.mongo_client import get_mongo_database
 from cogs.module_registry import ROBLOX_AUTH_GUILD_ID
-from cogs.server_config import get_channel_id, is_owner_id
+from cogs.server_config import (
+    authorize_roblox_auth_guild,
+    get_authorized_roblox_auth_guild_ids,
+    get_channel_id,
+    is_owner_id,
+    is_panel_owner,
+    is_roblox_auth_guild_authorized,
+    revoke_roblox_auth_guild,
+)
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -28,6 +38,10 @@ DURATION_RE = re.compile(r"^\s*(\d+)\s*([smhd]?)\s*$", re.IGNORECASE)
 
 def _username_key(username: str) -> str:
     return username.strip().lower()
+
+
+def _account_id() -> str:
+    return f"rbx_{uuid.uuid4().hex[:10]}"
 
 
 def _utcnow():
@@ -176,6 +190,8 @@ class RobloxAuthRefreshView(discord.ui.View):
 
 
 class RobloxAuthCog(commands.Cog):
+    rbxauthguild = app_commands.Group(name="rbxauthguild", description="Panel Owner Roblox Auth guild authorization.")
+
     def __init__(self, bot):
         self.bot = bot
         self.db = get_mongo_database()
@@ -185,8 +201,15 @@ class RobloxAuthCog(commands.Cog):
         self._totp_cache: dict[str, tuple[str, pyotp.TOTP]] = {}
 
     async def cog_load(self):
+        if not is_roblox_auth_guild_authorized(ROBLOX_AUTH_GUILD_ID):
+            authorize_roblox_auth_guild(ROBLOX_AUTH_GUILD_ID)
         await self.accounts.create_index("username_key", unique=True)
+        await self.accounts.create_index("account_id", unique=True, sparse=True)
+        await self.accounts.create_index("roblox_user_id")
+        await self.accounts.create_index("guild_id")
         await self.accounts.create_index("active")
+        async for account in self.accounts.find({"account_id": {"$exists": False}}):
+            await self.accounts.update_one({"_id": account["_id"]}, {"$set": {"account_id": _account_id()}})
         await self.approvals.create_index([("discord_user", 1), ("username_key", 1), ("active", 1)])
         await self.approvals.create_index("expires_at")
 
@@ -200,18 +223,20 @@ class RobloxAuthCog(commands.Cog):
             raise RuntimeError("TOTP_SECRET_KEY must be a valid Fernet key.") from exc
 
     def guild_allowed(self, guild: Optional[discord.Guild]) -> bool:
-        return bool(guild and guild.id == ROBLOX_AUTH_GUILD_ID)
+        return bool(guild and is_roblox_auth_guild_authorized(guild.id))
 
     def owner_allowed(self, user, guild: discord.Guild) -> bool:
         return is_owner_id(guild.id, user.id)
 
     def manager_allowed(self, member: discord.Member) -> bool:
+        if is_panel_owner(member.id):
+            return True
         role_id = get_mod_guild_config(member.guild.id).get("account_manager_role")
         return bool(role_id and any(role.id == role_id for role in member.roles))
 
     async def ensure_owner_interaction(self, interaction: discord.Interaction) -> bool:
         if not self.guild_allowed(interaction.guild):
-            await interaction.response.send_message("Unavailable in this server.", ephemeral=True)
+            await interaction.response.send_message("Roblox Auth is not authorized in this server.", ephemeral=True)
             return False
         if not self.owner_allowed(interaction.user, interaction.guild):
             await interaction.response.send_message("No permission.", ephemeral=True)
@@ -220,8 +245,10 @@ class RobloxAuthCog(commands.Cog):
 
     async def ensure_manager_interaction(self, interaction: discord.Interaction) -> bool:
         if not self.guild_allowed(interaction.guild):
-            await interaction.response.send_message("Unavailable in this server.", ephemeral=True)
+            await interaction.response.send_message("Roblox Auth is not authorized in this server.", ephemeral=True)
             return False
+        if is_panel_owner(interaction.user.id):
+            return True
         if not isinstance(interaction.user, discord.Member) or not self.manager_allowed(interaction.user):
             await interaction.response.send_message("No permission.", ephemeral=True)
             return False
@@ -251,6 +278,22 @@ class RobloxAuthCog(commands.Cog):
 
     async def get_account(self, username: str):
         return await self.accounts.find_one({"username_key": _username_key(username), "active": True})
+
+    async def resolve_roblox_user_id(self, username: str) -> Optional[int]:
+        payload = {"usernames": [username], "excludeBannedUsers": False}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post("https://users.roblox.com/v1/usernames/users", json=payload) as response:
+                    if response.status >= 400:
+                        return None
+                    data = await response.json()
+        except Exception:
+            traceback.print_exc()
+            return None
+        users = data.get("data") or []
+        if not users:
+            return None
+        return int(users[0]["id"])
 
     async def get_active_approval(self, discord_user_id: int, username: str):
         now = _utcnow()
@@ -482,6 +525,40 @@ class RobloxAuthCog(commands.Cog):
         embed = self._build_log_embed(action, detail)
         await channel.send(embed=embed)
 
+    async def ensure_panel_owner_interaction(self, interaction: discord.Interaction) -> bool:
+        if not is_panel_owner(interaction.user.id):
+            await interaction.response.send_message("Only the Panel Owner can use this command.", ephemeral=True)
+            return False
+        return True
+
+    @rbxauthguild.command(name="add", description="Authorize a Discord guild to use Roblox Auth.")
+    async def rbxauthguild_add(self, interaction: discord.Interaction, guild_id: str):
+        if not await self.ensure_panel_owner_interaction(interaction):
+            return
+        if not guild_id.strip().isdigit():
+            return await interaction.response.send_message("Guild ID must be numeric.", ephemeral=True)
+        authorize_roblox_auth_guild(int(guild_id))
+        await interaction.response.send_message(f"Roblox Auth authorized for guild `{guild_id}`.", ephemeral=True)
+        await self.log_event(interaction.guild, "Roblox Auth Guild Authorized", {"guild_id": guild_id, "updated_by": interaction.user.id})
+
+    @rbxauthguild.command(name="remove", description="Revoke a Discord guild's Roblox Auth access.")
+    async def rbxauthguild_remove(self, interaction: discord.Interaction, guild_id: str):
+        if not await self.ensure_panel_owner_interaction(interaction):
+            return
+        if not guild_id.strip().isdigit():
+            return await interaction.response.send_message("Guild ID must be numeric.", ephemeral=True)
+        revoke_roblox_auth_guild(int(guild_id))
+        await interaction.response.send_message(f"Roblox Auth revoked for guild `{guild_id}`.", ephemeral=True)
+        await self.log_event(interaction.guild, "Roblox Auth Guild Revoked", {"guild_id": guild_id, "updated_by": interaction.user.id})
+
+    @rbxauthguild.command(name="list", description="List guilds authorized for Roblox Auth.")
+    async def rbxauthguild_list(self, interaction: discord.Interaction):
+        if not await self.ensure_panel_owner_interaction(interaction):
+            return
+        ids = get_authorized_roblox_auth_guild_ids()
+        lines = [f"- `{gid}` {self.bot.get_guild(gid).name if self.bot.get_guild(gid) else ''}" for gid in ids]
+        await interaction.response.send_message("\n".join(lines) or "No guilds are authorized.", ephemeral=True)
+
     @app_commands.command(name="rbxmanagerrole", description="Set the Roblox auth account manager role.")
     async def rbxmanagerrole(self, interaction: discord.Interaction, role: discord.Role):
         if not await self.ensure_owner_interaction(interaction):
@@ -501,20 +578,29 @@ class RobloxAuthCog(commands.Cog):
         totp_secret: str,
         password: Optional[str] = None,
     ):
-        if not await self.ensure_owner_interaction(interaction):
+        if not await self.ensure_manager_interaction(interaction):
             return
 
         await interaction.response.defer(ephemeral=True, thinking=True)
         username = username.strip()
+        if len(username) < 3 or len(username) > 20 or not re.match(r"^[A-Za-z0-9_]+$", username):
+            return await interaction.followup.send("Roblox username must be 3-20 characters using letters, numbers, or underscores.", ephemeral=True)
+        existing = await self.accounts.find_one({"username_key": _username_key(username)})
+        if existing:
+            return await interaction.followup.send("That Roblox account already exists. Use `/rbxedit` to update it.", ephemeral=True)
         try:
             encrypted_secret = self.encrypt_secret(totp_secret)
             encrypted_password = self.encrypt_password(password) if password is not None else None
         except ValueError as exc:
             return await interaction.followup.send(str(exc), ephemeral=True)
         now = _utcnow()
+        roblox_user_id = await self.resolve_roblox_user_id(username)
         account_updates = {
+            "account_id": _account_id(),
+            "guild_id": interaction.guild.id,
             "username": username,
             "username_key": _username_key(username),
+            "roblox_user_id": roblox_user_id,
             "display_name": display_name.strip(),
             "gmail": linked_gmail.strip() or None,
             "totp_secret": encrypted_secret,
@@ -524,19 +610,11 @@ class RobloxAuthCog(commands.Cog):
         }
         if encrypted_password is not None:
             account_updates["password"] = encrypted_password
-        await self.accounts.update_one(
-            {"username_key": _username_key(username)},
-            {
-                "$set": account_updates,
-                "$setOnInsert": {
-                    "created_by": interaction.user.id,
-                    "created_at": now,
-                },
-            },
-            upsert=True,
-        )
+        account_updates["created_by"] = interaction.user.id
+        account_updates["created_at"] = now
+        await self.accounts.insert_one(account_updates)
         self._totp_cache.pop(_username_key(username), None)
-        await interaction.followup.send(f"`{username}` saved.", ephemeral=True)
+        await interaction.followup.send(f"`{username}` saved with account ID `{account_updates['account_id']}`.", ephemeral=True)
         await self.log_event(interaction.guild, "Account Added", f"roblox_username={username} by={interaction.user.id}")
 
     @app_commands.command(name="rbxedit", description="Edit a Roblox authenticator account.")
@@ -551,7 +629,7 @@ class RobloxAuthCog(commands.Cog):
         password: Optional[str] = None,
         clear_password: Optional[bool] = False,
     ):
-        if not await self.ensure_owner_interaction(interaction):
+        if not await self.ensure_manager_interaction(interaction):
             return
 
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -589,7 +667,7 @@ class RobloxAuthCog(commands.Cog):
 
     @app_commands.command(name="rbxremove", description="Delete a Roblox authenticator account.")
     async def rbxremove(self, interaction: discord.Interaction, username: str):
-        if not await self.ensure_owner_interaction(interaction):
+        if not await self.ensure_manager_interaction(interaction):
             return
 
         account = await self.accounts.find_one({"username_key": _username_key(username)})
@@ -607,7 +685,7 @@ class RobloxAuthCog(commands.Cog):
 
     @app_commands.command(name="rbxlist", description="List Roblox authenticator accounts.")
     async def rbxlist(self, interaction: discord.Interaction):
-        if not await self.ensure_owner_interaction(interaction):
+        if not await self.ensure_manager_interaction(interaction):
             return
 
         accounts = await self.accounts.find({}).sort("username_key", 1).to_list(100)
@@ -621,14 +699,14 @@ class RobloxAuthCog(commands.Cog):
             )
             assigned = f"<@{approval['discord_user']}>" if approval else "None"
             status = "Active" if account.get("active", True) else "Inactive"
-            lines.append(f"`{account['username']}` | assigned={assigned} | status={status}")
+            lines.append(f"`{account.get('account_id', 'legacy')}` | `{account['username']}` | assigned={assigned} | status={status}")
 
         embed = discord.Embed(title="Roblox Auth Accounts", description="\n".join(lines)[:4000], color=0x5865F2)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="rbxinfo", description="Show Roblox authenticator account information.")
     async def rbxinfo(self, interaction: discord.Interaction, username: str):
-        if not await self.ensure_owner_interaction(interaction):
+        if not await self.ensure_manager_interaction(interaction):
             return
 
         account = await self.accounts.find_one({"username_key": _username_key(username)})
@@ -636,7 +714,9 @@ class RobloxAuthCog(commands.Cog):
             return await interaction.response.send_message("Account not found.", ephemeral=True)
 
         embed = discord.Embed(title="Roblox Account Info", color=0x5865F2)
+        embed.add_field(name="Account ID", value=account.get("account_id", "legacy"), inline=True)
         embed.add_field(name="Username", value=account.get("username", "Unknown"), inline=True)
+        embed.add_field(name="Roblox User ID", value=str(account.get("roblox_user_id") or "Not resolved"), inline=True)
         embed.add_field(name="Display Name", value=account.get("display_name") or "Not set", inline=True)
         embed.add_field(name="Linked Gmail", value=account.get("gmail") or "Not set", inline=False)
         embed.add_field(name="Status", value="Active" if account.get("active", True) else "Inactive", inline=True)
@@ -749,12 +829,11 @@ class RobloxAuthCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not self.guild_allowed(message.guild):
-            return
-
         trigger = parse_shorekeeper_trigger(self.bot, message)
         if not trigger or trigger["keyword"] != "robloxauth":
             return
+        if not self.guild_allowed(message.guild):
+            return await message.channel.send("Roblox Auth is not authorized in this server.", delete_after=8)
 
         username = " ".join(trigger["args"]).strip()
         if not username:

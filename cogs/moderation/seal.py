@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from cogs.trigger_parser import parse_shorekeeper_trigger
-from cogs.server_config import get_guild_config, is_admin, update_guild_config
+from cogs.server_config import get_channel_id, get_guild_config, immunity_reason, is_admin, update_guild_config
 
 
 DATA_FILE = "cogs/moderation/data2/seals.json"
@@ -58,6 +58,9 @@ class Seal(commands.Cog):
 
         if not bot_member:
             return "I could not find my member profile in this server."
+        protected = immunity_reason(member, "seal")
+        if protected:
+            return protected
         if member == member.guild.owner:
             return "I cannot change roles on the server owner."
         if not bot_member.guild_permissions.manage_roles:
@@ -88,6 +91,17 @@ class Seal(commands.Cog):
             guild_data = {}
             data[guild_key] = guild_data
         return guild_data
+
+    async def send_security_log(self, guild, moderator, target, reason):
+        channel_id = get_channel_id(guild.id, "mod_logs") or get_channel_id(guild.id, "logging")
+        channel = guild.get_channel(channel_id) if channel_id else None
+        if not channel:
+            return
+        embed = discord.Embed(title="Security: Blocked Seal", color=0xED4245)
+        embed.add_field(name="Target", value=f"{target.mention} ({target.id})", inline=False)
+        embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        await channel.send(embed=embed)
 
     async def seal_member(self, member):
         member_error = self.validate_can_manage_member(member)
@@ -204,6 +218,8 @@ class Seal(commands.Cog):
                 success, detail = await self.seal_member(target)
 
                 if not success:
+                    if detail and "protected" in detail.lower():
+                        await self.send_security_log(message.guild, message.author, target, detail)
                     return await message.channel.send(
                         f"Seal failed: {detail}"
                     )

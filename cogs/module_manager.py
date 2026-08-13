@@ -203,6 +203,13 @@ class ModuleManager(commands.Cog):
         embed = discord.Embed(title="Server Settings", color=0x2ECC71)
         embed.add_field(name="Modules", value="\n".join(self._module_lines(interaction.guild))[:1024], inline=False)
         embed.add_field(name="Channels", value=str(cfg.get("channels", {}))[:1024], inline=False)
+        immunity_role_id = cfg.get("immunity_role")
+        immunity_role = interaction.guild.get_role(immunity_role_id) if immunity_role_id else None
+        embed.add_field(
+            name="Protection",
+            value=f"Immunity Role: {immunity_role.mention if immunity_role else immunity_role_id or 'Not set'}",
+            inline=False,
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="help", description="Show Shorekeeper handoff commands.")

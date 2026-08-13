@@ -102,7 +102,7 @@ MODULES = {
             "cogs.moderation.role_tools",
             "cogs.moderation.seal",
         ],
-        "slash": [],
+        "slash": ["modpanel"],
         "mention": [
             "modtest",
             "ban",
@@ -184,10 +184,10 @@ MODULES = {
             "rejectauth",
             "revokeauth",
             "activeapprovals",
+            "rbxauthguild",
         ],
         "mention": ["robloxauth"],
         "default_state": "active",
-        "guild_ids": [ROBLOX_AUTH_GUILD_ID],
     },
 }
 
