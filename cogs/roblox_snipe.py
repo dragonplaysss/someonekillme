@@ -258,6 +258,7 @@ class RobloxSnipeCog(commands.Cog):
             excess_count = len(cache) - limit
             for i in range(excess_count):
                 cache.pop(sorted_items[i][0], None)
+        return value
 
     def _enforce_cooldown_limit(self, cooldown_dict: dict, limit: int):
         """Enforce size limit on cooldown dictionaries by removing oldest entries."""
