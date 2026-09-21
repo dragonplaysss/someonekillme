@@ -1,0 +1,113 @@
+[
+    {
+        "type": "message",
+        "time": "2026-09-15 18:31:29 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:32:36 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> resync"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:02 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:21 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:34 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:47 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> purge 3"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:50 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "oh"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:57 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:34:58 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "u work"
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-15 18:35:14 UTC",
+        "member": "akar_t9999",
+        "member_id": 783340856789696513
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:35:14 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": ""
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:36:37 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1535254001996800053,
+        "content": "<@1487839805596241961> shorehelp"
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-15 18:38:27 UTC",
+        "member": "akar_t9999",
+        "member_id": 783340856789696513
+    }
+]

@@ -4,8 +4,12 @@ import os
 import discord
 from discord.ext import commands
 
+from cogs.core.authz import DangerousActionRequest, authorize_dangerous_action
+from cogs.core.hierarchy import can_bot_manage_role
+from cogs.core.persistence import atomic_write_json
+from cogs.core.responses import response_engine
 from cogs.trigger_parser import parse_shorekeeper_trigger
-from cogs.server_config import get_channel_id, get_guild_config, immunity_reason, is_admin, update_guild_config
+from cogs.server_config import get_channel_id, get_guild_config, immunity_reason, is_admin, is_mod, update_guild_config
 
 
 DATA_FILE = "cogs/moderation/data2/seals.json"
@@ -20,9 +24,7 @@ def load_data():
 
 
 def save_data(data):
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+    atomic_write_json(DATA_FILE, data)
 
 
 class Seal(commands.Cog):
@@ -97,7 +99,11 @@ class Seal(commands.Cog):
         channel = guild.get_channel(channel_id) if channel_id else None
         if not channel:
             return
-        embed = discord.Embed(title="Security: Blocked Seal", color=0xED4245)
+        embed = response_engine.build(
+            title="Security: Blocked Seal",
+            description="",
+            color=0xED4245
+        )
         embed.add_field(name="Target", value=f"{target.mention} ({target.id})", inline=False)
         embed.add_field(name="Moderator", value=moderator.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
@@ -115,13 +121,24 @@ class Seal(commands.Cog):
         if role_error:
             return False, role_error
 
-        saved_roles = [
-            role.id
-            for role in member.roles
-            if role.name != "@everyone"
-            and not role.managed
-            and role != seal_role
-        ]
+        saved_roles = []
+        blocked_roles = []
+        bot_member = self.get_bot_member(member.guild)
+        for role in member.roles:
+            if role.name == "@everyone" or role.managed or role == seal_role:
+                continue
+            if bot_member is not None and not can_bot_manage_role(bot_member, role).allowed:
+                blocked_roles.append(role.name)
+                continue
+            saved_roles.append(role.id)
+
+        if blocked_roles:
+            # Never attempt the API call: Discord's role order is absolute.
+            return False, (
+                "Shorekeeper cannot seal that member because these roles are equal to or above "
+                "Shorekeeper's highest role: "
+                + ", ".join(sorted(blocked_roles))
+            )
 
         data = load_data()
         guild_data = self.get_guild_data(data, member.guild.id)
@@ -161,7 +178,7 @@ class Seal(commands.Cog):
 
             if not role:
                 continue
-            if bot_member and role >= bot_member.top_role:
+            if bot_member is None or not can_bot_manage_role(bot_member, role).allowed:
                 skipped_roles.append(role.name)
                 continue
             if not role.managed:
@@ -201,17 +218,44 @@ class Seal(commands.Cog):
         }:
             return
 
-        if not is_admin(message.author):
-            return await message.channel.send(
-                "No permission."
+        if not is_admin(message.author) and not is_mod(message.author):
+            embed = response_engine.permission_denied(
+                detail="No permission."
             )
+            await message.channel.send(embed=embed)
+            return
 
         target = trigger["target"]
 
         if not target:
-            return await message.channel.send(
-                "User not found."
+            embed = response_engine.failure(
+                title="User Not Found",
+                description="User not found."
             )
+            await message.channel.send(embed=embed)
+            return
+
+        decision = authorize_dangerous_action(
+            DangerousActionRequest(
+                guild_config=get_guild_config(message.guild.id),
+                module="moderation",
+                actor=message.author,
+                bot_member=self.get_bot_member(message.guild),
+                target_member=target,
+                target_role=None,
+                actor_authorized=is_admin(message.author),
+                required_bot_permissions=("manage_roles",),
+                required_actor_permissions=("manage_roles",),
+                security_policy_allowed=True,
+                security_action=keyword,
+            )
+        )
+        if not decision.allowed:
+            embed = response_engine.permission_denied(
+                detail=decision.reason or "Action denied by Shorekeeper's safety checks."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "seal":
             try:
@@ -220,18 +264,25 @@ class Seal(commands.Cog):
                 if not success:
                     if detail and "protected" in detail.lower():
                         await self.send_security_log(message.guild, message.author, target, detail)
-                    return await message.channel.send(
-                        f"Seal failed: {detail}"
+                    embed = response_engine.failure(
+                        title="Seal Failed",
+                        description=f"Seal failed: {detail}"
                     )
+                    await message.channel.send(embed=embed)
+                    return
 
-                await message.channel.send(
-                    f"{target.mention} has been sealed."
+                embed = response_engine.success(
+                    title="Member Sealed",
+                    description=f"{target.mention} has been sealed."
                 )
+                await message.channel.send(embed=embed)
 
             except Exception as e:
-                await message.channel.send(
-                    f"Seal failed: {e}"
+                embed = response_engine.failure(
+                    title="Seal Failed",
+                    description=f"Seal failed: {e}"
                 )
+                await message.channel.send(embed=embed)
 
         if keyword == "unseal":
             success, detail = await self.unseal_member(
@@ -239,14 +290,20 @@ class Seal(commands.Cog):
             )
 
             if success:
-                content = f"{target.mention} has been unsealed."
+                description = f"{target.mention} has been unsealed."
                 if detail:
-                    content += f" {detail}"
-                await message.channel.send(content)
-            else:
-                await message.channel.send(
-                    detail
+                    description += f" {detail}"
+                embed = response_engine.success(
+                    title="Member Unsealed",
+                    description=description
                 )
+                await message.channel.send(embed=embed)
+            else:
+                embed = response_engine.failure(
+                    title="Unseal Failed",
+                    description=detail
+                )
+                await message.channel.send(embed=embed)
 
 
 async def setup(bot):

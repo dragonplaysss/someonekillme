@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from cogs.server_config import is_admin
+from cogs.core.responses import response_engine
 
 
 def parse_hex_color(value: str):
@@ -23,19 +24,31 @@ class EmbedBuilderModal(discord.ui.Modal, title="Create Custom Embed"):
         try:
             color = parse_hex_color(self.color_input.value or "")
         except ValueError:
-            return await interaction.response.send_message("Invalid hex color.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Color",
+                description="The provided hex color is invalid.",
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         embed = discord.Embed(
             title=self.title_input.value,
             description=self.description_input.value,
             color=color,
         )
+        # Add Shorekeeper footer for consistency
+        embed.set_footer(text=response_engine.footer)
         if self.image_input.value:
             embed.set_image(url=self.image_input.value.strip())
         if self.thumbnail_input.value:
             embed.set_thumbnail(url=self.thumbnail_input.value.strip())
         await interaction.channel.send(embed=embed)
-        await interaction.response.send_message("Embed sent.", ephemeral=True)
+
+        success_embed = response_engine.success(
+            title="Embed Sent",
+            description="Your custom embed has been sent to the channel."
+        )
+        await interaction.response.send_message(embed=success_embed, ephemeral=True)
 
 
 class EmbedWebhookCog(commands.Cog):
@@ -45,21 +58,36 @@ class EmbedWebhookCog(commands.Cog):
     @app_commands.command(name="embed", description="Open an embed builder modal.")
     async def embed_command(self, interaction: discord.Interaction):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the administrative privileges to use the embed builder."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         await interaction.response.send_modal(EmbedBuilderModal())
 
     @app_commands.command(name="webhook", description="Create a webhook in this channel and return URL.")
     async def webhook_command(self, interaction: discord.Interaction):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the administrative privileges to create webhooks."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         if not isinstance(interaction.channel, discord.TextChannel):
-            return await interaction.response.send_message("Run this in a text channel.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Channel",
+                description="Webhooks can only be created in text channels."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         webhook = await interaction.channel.create_webhook(name="Shorekeeper Webhook")
-        await interaction.response.send_message(
-            f"Webhook created:\n`{webhook.url}`",
-            ephemeral=True,
+
+        success_embed = response_engine.success(
+            title="Webhook Created",
+            description=f"A new webhook has been established in this channel.\nURL: `{webhook.url}`"
         )
+        await interaction.response.send_message(embed=success_embed, ephemeral=True)
 
 
 async def setup(bot):

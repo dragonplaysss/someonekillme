@@ -1,0 +1,66 @@
+﻿    def __init__(self, *, intents: Intents, **options: Unpack[_ClientOptions]) -> None:
+        self.loop: asyncio.AbstractEventLoop = _loop
+        # self.ws is set in the connect method
+        self.ws: DiscordWebSocket = None  # type: ignore
+        self._listeners: Dict[str, List[Tuple[asyncio.Future, Callable[..., bool]]]] = {}
+        self.shard_id: Optional[int] = options.get('shard_id')
+        self.shard_count: Optional[int] = options.get('shard_count')
+
+        connector: Optional[aiohttp.BaseConnector] = options.get('connector', None)
+        proxy: Optional[str] = options.pop('proxy', None)
+        proxy_auth: Optional[aiohttp.BasicAuth] = options.pop('proxy_auth', None)
+        unsync_clock: bool = options.pop('assume_unsync_clock', True)
+        http_trace: Optional[aiohttp.TraceConfig] = options.pop('http_trace', None)
+        max_ratelimit_timeout: Optional[float] = options.pop('max_ratelimit_timeout', None)
+        self.http: HTTPClient = HTTPClient(
+            self.loop,
+            connector,
+            proxy=proxy,
+            proxy_auth=proxy_auth,
+            unsync_clock=unsync_clock,
+            http_trace=http_trace,
+            max_ratelimit_timeout=max_ratelimit_timeout,
+        )
+
+        self._handlers: Dict[str, Callable[..., None]] = {
+            'ready': self._handle_ready,
+        }
+
+        self._hooks: Dict[str, Callable[..., Coroutine[Any, Any, Any]]] = {
+            'before_identify': self._call_before_identify_hook,
+        }
+
+        self._enable_debug_events: bool = options.pop('enable_debug_events', False)
+        self._connection: ConnectionState[Self] = self._get_state(intents=intents, **options)
+        self._connection.shard_count = self.shard_count
+        self._closing_task: Optional[asyncio.Task[None]] = None
+        self._ready: asyncio.Event = MISSING
+        self._application: Optional[AppInfo] = None
+        self._connection._get_websocket = self._get_websocket
+        self._connection._get_client = lambda: self
+
+        if VoiceClient.warn_nacl:
+            VoiceClient.warn_nacl = False
+            _log.warning('PyNaCl is not installed, voice will NOT be supported')
+
+        if VoiceClient.warn_dave:
+            VoiceClient.warn_dave = False
+            _log.warning('davey is not installed, voice will NOT be supported')
+
+    async def _run_event(
+        self,
+        coro: Callable[..., Coroutine[Any, Any, Any]],
+        event_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        try:
+            await coro(*args, **kwargs)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            try:
+                await self.on_error(event_name, *args, **kwargs)
+            except asyncio.CancelledError:
+                pass
+

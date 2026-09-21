@@ -4,6 +4,8 @@ import time
 from copy import deepcopy
 from typing import Any, Callable
 
+from cogs.core.persistence import atomic_write_json
+
 
 CONFIG_PATH = "cogs/moderation/data2/mod_config.json"
 
@@ -81,9 +83,7 @@ def load_mod_config():
 def save_mod_config(config):
     global _CONFIG_CACHE, _CONFIG_MTIME
 
-    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4)
+    atomic_write_json(CONFIG_PATH, config)
     _CONFIG_CACHE = deepcopy(config)
     _CONFIG_MTIME = os.path.getmtime(CONFIG_PATH) if os.path.exists(CONFIG_PATH) else None
 

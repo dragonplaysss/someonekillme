@@ -1,11 +1,17 @@
 import json
 import os
+import tempfile
+import threading
 import time
 from copy import deepcopy
 
+from cogs.core.constants import SOLE_OWNER_ID
+from cogs.core.permissions import is_owner_id as is_sole_owner_id
 
-PANEL_OWNER_ID = 708390973712891976
+
+PANEL_OWNER_ID = SOLE_OWNER_ID
 CONFIG_PATH = "cogs/moderation/data2/server_config.json"
+_WRITE_LOCK = threading.RLock()
 
 DEFAULT_CONFIG = {
     "guilds": {},
@@ -15,7 +21,7 @@ DEFAULT_CONFIG = {
 }
 
 DEFAULT_GUILD = {
-    "owner_ids": [PANEL_OWNER_ID],
+    "enabled": False,
     "admin_ids": [],
     "admin_roles": [],
     "mod_roles": [],
@@ -41,6 +47,37 @@ DEFAULT_GUILD = {
         "dashboard": None,
     },
     "modules": {},
+    "anti_nuke": {
+        "enabled": False,
+        "mode": "monitor",
+        "bot_add_punishment": "kick",
+        "trigger_lockdown_on_bot_add": False,
+        "trigger_lockdown_on_mass_action": False,
+        "window_seconds": 20,
+        "cooldown_seconds": 60,
+        "trusted_user_ids": [],
+        "trusted_role_ids": [],
+        "trusted_bot_ids": [],
+        "thresholds": {
+            "ban": 5,
+            "kick": 5,
+            "channel_delete": 3,
+            "channel_create": 5,
+            "role_delete": 3,
+            "role_create": 5,
+            "webhook": 4,
+            "guild_update": 3,
+            "role_update": 3,
+            "raid_join": 8,
+        },
+    },
+    "lockdown": {
+        "enabled": False,
+        "activated_by": None,
+        "activated_at": None,
+        "channel_ids": [],
+        "saved_overwrites": {},
+    },
     "minecraft": {
         "enabled": True,
         "screen_name": "minecraft",
@@ -87,6 +124,29 @@ def _ensure_guild_defaults(guild_config):
                 changed = True
     if not isinstance(guild_config.get("modules"), dict):
         guild_config["modules"] = {}
+        changed = True
+    for nested in ("anti_nuke", "lockdown"):
+        default_nested = DEFAULT_GUILD[nested]
+        if not isinstance(guild_config.get(nested), dict):
+            guild_config[nested] = deepcopy(default_nested)
+            changed = True
+        else:
+            for nested_key, nested_value in default_nested.items():
+                if nested_key not in guild_config[nested]:
+                    guild_config[nested][nested_key] = deepcopy(nested_value)
+                    changed = True
+            if nested == "anti_nuke":
+                thresholds = guild_config[nested].setdefault("thresholds", {})
+                if not isinstance(thresholds, dict):
+                    guild_config[nested]["thresholds"] = deepcopy(default_nested["thresholds"])
+                    changed = True
+                else:
+                    for threshold_key, threshold_value in default_nested["thresholds"].items():
+                        if threshold_key not in thresholds:
+                            thresholds[threshold_key] = threshold_value
+                            changed = True
+    if "enabled" not in guild_config:
+        guild_config["enabled"] = False
         changed = True
     if not isinstance(guild_config.get("minecraft"), dict):
         guild_config["minecraft"] = deepcopy(DEFAULT_GUILD["minecraft"])
@@ -155,10 +215,23 @@ def save_config(config):
     global _CONFIG_CACHE, _CONFIG_MTIME
 
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4)
-    _CONFIG_CACHE = deepcopy(config)
-    _CONFIG_MTIME = os.path.getmtime(CONFIG_PATH) if os.path.exists(CONFIG_PATH) else None
+    with _WRITE_LOCK:
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=f".{os.path.basename(CONFIG_PATH)}.",
+            suffix=".tmp",
+            dir=os.path.dirname(CONFIG_PATH) or ".",
+            text=True,
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(config, handle, indent=4)
+                handle.write("\n")
+            os.replace(tmp_name, CONFIG_PATH)
+        finally:
+            if os.path.exists(tmp_name):
+                os.unlink(tmp_name)
+        _CONFIG_CACHE = deepcopy(config)
+        _CONFIG_MTIME = os.path.getmtime(CONFIG_PATH) if os.path.exists(CONFIG_PATH) else None
 
 
 def get_guild_config(guild_id):
@@ -204,7 +277,7 @@ def get_channel_id(guild_id, key):
 
 
 def is_panel_owner(user_id):
-    return user_id == PANEL_OWNER_ID
+    return is_sole_owner_id(user_id)
 
 
 def get_authorized_roblox_auth_guild_ids():
@@ -293,7 +366,7 @@ def is_mod(member):
     return any(role.id in roles for role in member.roles)
 
 
-def is_owner_id(guild_id, user_id):
-    owner_ids = set(get_guild_config(guild_id).get("owner_ids", []))
-    owner_ids.add(PANEL_OWNER_ID)
-    return user_id in owner_ids
+def is_owner_id(guild_id, user_id=None):
+    if user_id is None:
+        return is_sole_owner_id(guild_id)
+    return is_sole_owner_id(user_id)

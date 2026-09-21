@@ -7,5 +7,3549 @@
         "channel": "general",
         "channel_id": 1489351992118874177,
         "content": "e"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:36:34 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:36:42 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:36:57 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:00 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "try adding any bot"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:09 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "i gotta test the anti nuke feature"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:12 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Alr"
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-15 18:37:33 UTC",
+        "role": "TTS Bot",
+        "role_id": 1549489384355659866
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-15 18:37:33 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:41 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "waaaaaaaaaa"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:49 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Wtf"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:53 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Nigga rename the server"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:54 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Omfg"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:37:59 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "wat"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:14 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Wait in"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:15 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Im"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:19 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Leaving the other server"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:21 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "We js test here"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:31 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@&1496830174140956744> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:40 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:50 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Do i add?"
+    },
+    {
+        "type": "role_delete",
+        "time": "2026-09-15 18:38:57 UTC",
+        "role": "TTS Bot",
+        "role_id": 1549489384355659866
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-15 18:38:57 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:38:58 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> config"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:19 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Oh it's my roles."
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "wat"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:27 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "oh"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:29 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "think so"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:31 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Maybe that's why it let me add the bot here."
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:33 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "tts bot is gone"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:40 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "I kicked tts"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:44 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "oh"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:54 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:39:55 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Remove my sk role rq"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:40:04 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "I'll add bot again"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:40:22 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> lockdown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:40:33 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Nvm I don't got perms to add bots asw now"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:40:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "wait"
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-15 18:40:43 UTC",
+        "role": "new role",
+        "role_id": 1549490180917035129
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:15 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "try now"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:18 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "i gave u manage server"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:19 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "perms"
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-15 18:41:34 UTC",
+        "role": "TTS Bot",
+        "role_id": 1549490394205528227
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-15 18:41:34 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:44 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "I added it"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:45 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "bruh"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:46 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Somehow"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:51 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "lemme see"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:41:53 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "whats stopping it"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:02 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "I might go to bed soon."
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:10 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> showconfig"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:29 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "U gota"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:34 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Add that anti nuke shit"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:37 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "To the whitelist feature"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:42:58 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "Ppl who are whitelisted in ur bots hardcode can add bots and so on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:43:11 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "If not then the bot detects the person not being whitelisted and kicks them"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:43:26 UTC",
+        "author": "akar_t9999",
+        "author_id": 783340856789696513,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "It shud like actively check audit logs and stuff and like kicks the bot and the person who added it"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-15 18:43:51 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "https://klipy.com/gifs/festthefestivefest-morgone-jones"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:24:08 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:24:22 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:24:56 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> activateguild"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:25:01 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:25:12 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:26:48 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> modpanel"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:26:54 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:27:13 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-16 21:27:28 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:13:20 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:13:29 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "🫩"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:13:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E950410>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E9634D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E98DF30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E9C91D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@222222222222222222> ; spamming"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E86B240>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E9C9310>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> warn <@333333333333333333> ; rude"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E98BE30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E98E2C0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> timeout <@444444444444444444> 10m ; cooldown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E9CCF30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E98E8B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unmute <@444444444444444444> ; apology"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287E9FCDD0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E967AD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> purge 20"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA54910>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E86B9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA551D0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287EA58050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unlock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA55A90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E97EB50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> slowmode 30s"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA56350>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E97EF50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@777777777777777777>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA56CB0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287EA50140>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@888888888888888888>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA57610>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287EA507D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@424242424242424242>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:00 UTC",
+        "author": "<__main__.FakeMember object at 0x000002287EA57ED0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002287E9CD9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@919191919191919191>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E150550410>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E1505634D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15058E060>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E1505C91D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@222222222222222222> ; spamming"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15046B240>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E1505C9310>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> warn <@333333333333333333> ; rude"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15058BD40>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E15058E3F0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> timeout <@444444444444444444> 10m ; cooldown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E1505CCF30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E15058E9E0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unmute <@444444444444444444> ; apology"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E1505FCE90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E150567D10>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> purge 20"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15060F570>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E15046B9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15060FD90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E150628050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unlock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15062C5F0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E15057EC50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> slowmode 30s"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15062CE10>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E15057EF50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@777777777777777777>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15062D6D0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E150620410>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@888888888888888888>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15062DF90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E1506209B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@424242424242424242>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:42:28 UTC",
+        "author": "<__main__.FakeMember object at 0x000001E15062E7B0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001E1505CDC50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@919191919191919191>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF360190>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF36B770>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF1AA8B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF3D1090>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF2779B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF3D1450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF26EE00>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF38A190>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF393B60>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF38A520>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF3D5470>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF277E30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module disable moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AABCF9640>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF26F680>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@121212121212121212>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF3E19C0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF26FAC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF431310>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF387050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@131313131313131313>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF431B30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF387350>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF4322B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF440230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF432A30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF440500>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF433110>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF3D58D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown off"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF4337F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AAF3D6270>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> case 1042"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:49:31 UTC",
+        "author": "<__main__.FakeMember object at 0x0000016AAF433F70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x0000016AABCF8FC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> cases <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45E80190>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45E8B770>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45CCB490>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EFD090>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45D97890>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EFD450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45D8D480>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EB6060>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45EC3C50>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EB6520>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45EF10F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45D97E30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module disable moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE42849090>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45D8F680>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@121212121212121212>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45EF5A70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45D8FAC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F851D0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EA6F50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@131313131313131313>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F859F0>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EA7250>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F86170>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45F88230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F868F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45F88500>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F86FD0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EF20B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown off"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F876B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE45EF1EF0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> case 1042"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:50:20 UTC",
+        "author": "<__main__.FakeMember object at 0x000001BE45F87E30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000001BE42848D50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> cases <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8C70190>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8C7B770>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8ABB490>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CF1090>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8B87890>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CF1450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8B7D480>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8C9E060>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8CAFC50>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8C9E520>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:55 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8CE10F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8B87E30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module disable moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B5629090>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8B7F680>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@121212121212121212>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8CE5A70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8B7FAC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6D1D0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8C93150>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@131313131313131313>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6D9F0>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8C93450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6E170>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D74230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6E8F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D74500>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6EFD0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CE20B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown off"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6F6B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CE1EF0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> case 1042"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6FE30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B5628EF0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> cases <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D60730>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D05C10>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@141414141414141414> ; verified | trusted"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D60F50>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D06210>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@151515151515151515>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D61770>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CE6780>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> locknick <@161616161616161616> ; Watchful"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D61EF0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CE6200>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D627B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D62670>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active anti_nuke"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D63070>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D62F30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D637F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8CA2450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke enable enforcement"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6FB10>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D03750>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke whitelist list"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6F570>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D03C50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> health"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6E210>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D65E50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> config"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6DA90>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D65FD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> whoami"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6D1D0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D66050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:51:56 UTC",
+        "author": "<__main__.FakeMember object at 0x00000187B8D6C9B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000187B8D66150>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ping"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446158190>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x000002B44616B8C0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B444F0B490>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446220F50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446077770>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446221310>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44606D7B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461EE060>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B4461CBB60>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461EE520>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:31 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B4461A1390>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446077D10>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module disable moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446238530>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44606F8A0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@121212121212121212>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B4461B5C80>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44606FCE0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446235310>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446183250>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@131313131313131313>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446235B30>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x000002B446183550>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B4462362B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446244140>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446236A30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446244410>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446237110>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461A2350>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown off"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B4462377F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461A2190>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> case 1042"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446237F70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B442A894A0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> cases <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623C870>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446219CD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@141414141414141414> ; verified | trusted"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623D090>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44621A2D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@151515151515151515>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623D8B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461B6990>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> locknick <@161616161616161616> ; Watchful"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623E030>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461B6410>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623E8F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44623E7B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active anti_nuke"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623F1B0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44623F070>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B44623F930>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B4461FE4E0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke enable enforcement"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446237A70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446153C50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke whitelist list"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446237430>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B44621F850>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> health"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446236A30>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446241DD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> config"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446236350>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446241ED0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> whoami"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446235BD0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446241FD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:52:32 UTC",
+        "author": "<__main__.FakeMember object at 0x000002B446235310>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x000002B446242050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ping"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A340410>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A3534D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A37DF30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A3B91D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@222222222222222222> ; spamming"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A25B240>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A3B9310>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> warn <@333333333333333333> ; rude"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A37BC50>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A37E2C0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> timeout <@444444444444444444> 10m ; cooldown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A3BCF30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A37E780>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unmute <@444444444444444444> ; apology"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A3ECE90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A357D10>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> purge 20"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A3FF570>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A25B9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A3FFD90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A460050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unlock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A4645F0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A36EC50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> slowmode 30s"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A464E10>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A36EF50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@777777777777777777>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A4656D0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A44C230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@888888888888888888>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A465F90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A44C9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@424242424242424242>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 12:57:07 UTC",
+        "author": "<__main__.FakeMember object at 0x000002242A4667B0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000002242A3BDC50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@919191919191919191>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84482D0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A846F230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84623F0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A84B9090>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@222222222222222222> ; spamming"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A835B350>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A84B91D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> warn <@333333333333333333> ; rude"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A8483B60>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A8462780>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> timeout <@444444444444444444> 10m ; cooldown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84BD010>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A8462D70>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unmute <@444444444444444444> ; apology"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84D5190>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A84539B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> purge 20"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84FF610>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A835BAC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A84FFE30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A852C160>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unlock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A8518690>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A8472850>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> slowmode 30s"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A8518EB0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A8472B50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@777777777777777777>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A8519770>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A853C230>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@888888888888888888>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A851A030>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A853C7D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@424242424242424242>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:02:06 UTC",
+        "author": "<__main__.FakeMember object at 0x00000197A851A8F0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x00000197A84BDD30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@919191919191919191>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4160190>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x00000288A416B770>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A2EFB490>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41E1090>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4077890>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41E1450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A406D480>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41A2060>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4187D40>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41A2520>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A41D10F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4077E30>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module disable moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4224530>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A406F680>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@121212121212121212>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A41D5A70>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A406FAC0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active moderation"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421D270>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4183150>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@131313131313131313>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421DA90>",
+        "author_id": 909090909090909091,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4183450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421E210>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4230320>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown on"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421E990>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A42305F0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421F070>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41D20B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lockdown off"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421F750>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41D1EF0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> case 1042"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421FED0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A42264E0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> cases <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A42387D0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41E5CD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@141414141414141414> ; verified | trusted"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4238FF0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41E62D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> giverole <@151515151515151515>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4239810>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41D6780>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> locknick <@161616161616161616> ; Watchful"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A4239F90>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41D6200>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A423A850>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A423A710>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> module active anti_nuke"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A423B110>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A423AFD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A423B890>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4196450>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke enable enforcement"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421FD90>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41F3CD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> antinuke whitelist list"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421F2F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A41F3B50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> health"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421EAD0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4235D50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> config"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421E210>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4235E50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> whoami"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421DA90>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4235ED0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> shorehelp"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:05:18 UTC",
+        "author": "<__main__.FakeMember object at 0x00000288A421D4F0>",
+        "author_id": 708390973712891976,
+        "channel": "<__main__.FakeChannel object at 0x00000288A4235FD0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ping"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:07:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:07:36 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> activateguild"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:07:40 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "bro"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:07:41 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "bro"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:07 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "took u ages to start"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "took u ages to start"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "im so scard"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "im so scard"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:08:39 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:09:20 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> timeout <@513423712582762502> 10m"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:09:21 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> timeout <@513423712582762502> 10m"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:09:47 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "role_delete",
+        "time": "2026-09-17 13:09:47 UTC",
+        "role": "TTS Bot",
+        "role_id": 1549490394205528227
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-17 13:09:48 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:09:49 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:10:09 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> activateguild"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:10:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinukestatus"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:10:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinukestatus"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:10:52 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:10:52 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:11:09 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:11:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 13:11:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:51 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D938894410>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388A34D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@111111111111111111>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:51 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9388CE060>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9389091D0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@222222222222222222> ; spamming"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:51 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9387AB240>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D938909310>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> warn <@333333333333333333> ; rude"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:51 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9388B7E30>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388CE3F0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> timeout <@444444444444444444> 10m ; cooldown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:51 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D93890CE50>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388CE9E0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unmute <@444444444444444444> ; apology"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D938940F50>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388A7D10>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> purge 20"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389A3570>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9387AB9B0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> lock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389A3D90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9389B4050>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> unlock"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389B85F0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388C6C50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> slowmode 30s"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389B8E10>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9388C6F50>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@777777777777777777>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389B96D0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9389AC500>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@888888888888888888>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389B9F90>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D9389ACAA0>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> ban <@424242424242424242>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 14:15:52 UTC",
+        "author": "<__main__.FakeMember object at 0x000001D9389BA7B0>",
+        "author_id": 313131313131313131,
+        "channel": "<__main__.FakeChannel object at 0x000001D93890DB70>",
+        "channel_id": 777777777777777777,
+        "content": "<@999999999999999999> kick <@919191919191919191>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:06:01 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@513423712582762502> 10m"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:14:46 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:15:42 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:16:01 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> antinuke status"
+    },
+    {
+        "type": "role_delete",
+        "time": "2026-09-17 16:19:47 UTC",
+        "role": "TTS Bot",
+        "role_id": 1550171195436048466
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-17 16:19:47 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-17 16:21:02 UTC",
+        "role": "TTS Bot",
+        "role_id": 1550179793625161741
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-17 16:21:02 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "time": "2026-09-17 16:21:03 UTC",
+        "type": "anti_nuke_bot_add",
+        "added_bot": "TTS Bot#3590",
+        "added_bot_id": 513423712582762502,
+        "actor": "dahliae._",
+        "actor_id": 983621932287148092,
+        "attribution": "audit_attribution_identified",
+        "decision": "unauthorized_bot_add",
+        "removed_added_bot": true,
+        "punished_actor": true,
+        "punishment": "kick",
+        "lockdown_triggered": false
+    },
+    {
+        "type": "role_delete",
+        "time": "2026-09-17 16:21:03 UTC",
+        "role": "TTS Bot",
+        "role_id": 1550179793625161741
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-17 16:21:04 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-17 16:21:04 UTC",
+        "member": "dahliae._",
+        "member_id": 983621932287148092
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-17 16:21:11 UTC",
+        "member": "dahliae._",
+        "member_id": 983621932287148092
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:21:14 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:21:15 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "nice"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:21:16 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": ""
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-17 16:29:30 UTC",
+        "member": "zozoneedsleep",
+        "member_id": 710714578694307892
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:29:30 UTC",
+        "author": "zozoneedsleep",
+        "author_id": 710714578694307892,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": ""
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:33:51 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961>  warn <@783340856789696513>  test warning"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:33:55 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:33:57 UTC",
+        "author": "dahliae._",
+        "author_id": 983621932287148092,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "fuck u"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:34:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961>  warn <@783340856789696513>  test warning"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:37:08 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:37:19 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:37:34 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961>  warn <@783340856789696513>  test warning"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:37:44 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:37:58 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "this will make it so that even if the auth link gets circulated"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:38:04 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "it shouldnt work"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:38:05 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "easy"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:38:45 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> lockdown"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:39:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@708390973712891976>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:39:33 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:39:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@708390973712891976>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:40:22 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:40:32 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:40:37 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "lets try this"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:40:51 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> uwulock <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:40:56 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:22 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> uwulock <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:30 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:35 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "i kinda reworked it"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:38 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "and asked chatgpt"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:43 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:41:44 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "try speaking"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:42:16 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> cases <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 16:43:11 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> modpanel"
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-17 16:44:46 UTC",
+        "role": "TTS Bot",
+        "role_id": 1550185763222851585
+    },
+    {
+        "type": "member_join",
+        "time": "2026-09-17 16:44:46 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "time": "2026-09-17 16:44:46 UTC",
+        "type": "anti_nuke_bot_add",
+        "added_bot": "TTS Bot#3590",
+        "added_bot_id": 513423712582762502,
+        "actor": "dahliae._",
+        "actor_id": 983621932287148092,
+        "attribution": "audit_attribution_identified",
+        "decision": "monitor_only",
+        "removed_added_bot": false,
+        "punished_actor": false,
+        "punishment": null,
+        "lockdown_triggered": false
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 16:46:06 UTC",
+        "channel": "12312321323",
+        "channel_id": 1489379391678054480
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 16:46:14 UTC",
+        "channel": "123123",
+        "channel_id": 1489357802014244984
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 16:46:18 UTC",
+        "channel": "13",
+        "channel_id": 1550186150520557678
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 16:46:20 UTC",
+        "channel": "123",
+        "channel_id": 1550186160234561566
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 16:46:22 UTC",
+        "channel": "123",
+        "channel_id": 1550186170023936150
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:07:56 UTC",
+        "channel": "524",
+        "channel_id": 1550191596543156304
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:07:59 UTC",
+        "channel": "5235",
+        "channel_id": 1550191606429257868
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:08:02 UTC",
+        "channel": "325",
+        "channel_id": 1550191621189148772
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:04 UTC",
+        "channel": "325",
+        "channel_id": 1550191621189148772
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:06 UTC",
+        "channel": "5235",
+        "channel_id": 1550191606429257868
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:08 UTC",
+        "channel": "524",
+        "channel_id": 1550191596543156304
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:10 UTC",
+        "channel": "123",
+        "channel_id": 1550186170023936150
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:13 UTC",
+        "channel": "123",
+        "channel_id": 1550186160234561566
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:10:16 UTC",
+        "channel": "13",
+        "channel_id": 1550186150520557678
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:03 UTC",
+        "channel": "123123",
+        "channel_id": 1550192379657724085
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:05 UTC",
+        "channel": "1231231",
+        "channel_id": 1550192388549509262
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:07 UTC",
+        "channel": "123123",
+        "channel_id": 1550192397902938232
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:09 UTC",
+        "channel": "3123123",
+        "channel_id": 1550192405893087272
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:11 UTC",
+        "channel": "3123132",
+        "channel_id": 1550192414063333437
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:13 UTC",
+        "channel": "312313",
+        "channel_id": 1550192423362236476
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:11:19 UTC",
+        "channel": "312313",
+        "channel_id": 1550192423362236476
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:11:21 UTC",
+        "channel": "3123132",
+        "channel_id": 1550192414063333437
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:11:23 UTC",
+        "channel": "3123123",
+        "channel_id": 1550192405893087272
+    },
+    {
+        "time": "2026-09-17 17:11:24 UTC",
+        "type": "anti_nuke_channel_delete",
+        "action": "channel_delete",
+        "count": 3,
+        "reason": "monitor_only",
+        "attribution": "audit_attribution_identified",
+        "actor_id": 983621932287148092,
+        "target_id": 1550192405893087272,
+        "extra": ""
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:11:26 UTC",
+        "channel": "123123",
+        "channel_id": 1550192397902938232
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:35 UTC",
+        "channel": "123123",
+        "channel_id": 1550192514303008830
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:37 UTC",
+        "channel": "2131",
+        "channel_id": 1550192522750464040
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:39 UTC",
+        "channel": "123123",
+        "channel_id": 1550192531583664180
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 17:11:41 UTC",
+        "channel": "123123",
+        "channel_id": 1550192541029244998
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:12:29 UTC",
+        "channel": "123123",
+        "channel_id": 1550192541029244998
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:12:31 UTC",
+        "channel": "123123",
+        "channel_id": 1550192531583664180
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:12:33 UTC",
+        "channel": "2131",
+        "channel_id": 1550192522750464040
+    },
+    {
+        "time": "2026-09-17 17:12:34 UTC",
+        "type": "anti_nuke_channel_delete",
+        "action": "channel_delete",
+        "count": 3,
+        "reason": "threshold_exceeded",
+        "attribution": "audit_attribution_identified",
+        "actor_id": 983621932287148092,
+        "target_id": 1550192522750464040,
+        "extra": ""
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 17:12:36 UTC",
+        "channel": "123123",
+        "channel_id": 1550192514303008830
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:38:51 UTC",
+        "channel": "12312313",
+        "channel_id": 1550214475007918080
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:38:54 UTC",
+        "channel": "21312312321",
+        "channel_id": 1550214486344867932
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:38:56 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550214498693030078
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:39:00 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550214512626376734
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 18:43:18 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550214512626376734
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 18:43:20 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550214498693030078
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 18:43:23 UTC",
+        "channel": "21312312321",
+        "channel_id": 1550214486344867932
+    },
+    {
+        "time": "2026-09-17 18:43:23 UTC",
+        "type": "anti_nuke_channel_delete",
+        "action": "channel_delete",
+        "count": 3,
+        "reason": "threshold_exceeded",
+        "attribution": "audit_attribution_identified",
+        "actor_id": 983621932287148092,
+        "target_id": 1550214486344867932,
+        "extra": ""
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 18:43:26 UTC",
+        "channel": "12312313",
+        "channel_id": 1550214475007918080
+    },
+    {
+        "type": "channel_delete",
+        "time": "2026-09-17 18:43:29 UTC",
+        "channel": "1231231",
+        "channel_id": 1550192388549509262
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 18:43:51 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "eg"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 18:43:52 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "eh"
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:44:01 UTC",
+        "channel": "12312312313",
+        "channel_id": 1550215777427390514
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:44:06 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550215796612145233
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:44:08 UTC",
+        "channel": "123123123123",
+        "channel_id": 1550215806368096397
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:44:11 UTC",
+        "channel": "12312313",
+        "channel_id": 1550215816899723464
+    },
+    {
+        "type": "channel_create",
+        "time": "2026-09-17 18:44:14 UTC",
+        "channel": "2131231",
+        "channel_id": 1550215830246264913
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 18:44:46 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> seal <@783340856789696513>"
+    },
+    {
+        "type": "role_create",
+        "time": "2026-09-17 18:44:47 UTC",
+        "role": "sealed",
+        "role_id": 1550215967022260224
+    },
+    {
+        "type": "message",
+        "time": "2026-09-17 18:45:43 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> unseal <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-18 15:54:01 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> modpanel"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-18 15:54:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> whoami"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 14:56:52 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 14:57:00 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 14:57:04 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 14:57:43 UTC",
+        "author": "evane5cenc3",
+        "author_id": 1531399429511188563,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "chup lavde"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 15:56:46 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild disable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 15:56:49 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 15:57:32 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> resync"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 16:24:41 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> resync"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 16:25:14 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "💀"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 16:30:12 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> resync"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:32:24 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "bro"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:32:25 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "omg"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:45:16 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> robloxauth sdadadadqeqewqe"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:45:29 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "💀"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:45:50 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> robloxauth sdadadadqeqewqe"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:47:45 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> snipe dragonkid4x"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:54:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> snipe dragonkid4x4"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:54:50 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> robloxauth sdadadadqeqewqe"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:57:15 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> snipe dragonkid4x4"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:57:21 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> snipe dragonkid4x4"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:57:44 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> snipe dragonkid4x4"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:59:24 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> warn <@708390973712891976>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 17:59:27 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "ok"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 20:41:02 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 20:41:24 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> guild enable"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 20:41:40 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> warn <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-20 20:42:00 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 02:33:06 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> mute <@783340856789696513>"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 02:33:23 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "im gonna"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 02:33:24 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "cry"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 13:18:56 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> warn <@783340856789696513> ; gay"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 13:20:34 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> kick <@513423712582762502>"
+    },
+    {
+        "type": "role_delete",
+        "time": "2026-09-21 13:20:34 UTC",
+        "role": "TTS Bot",
+        "role_id": 1550185763222851585
+    },
+    {
+        "type": "member_leave",
+        "time": "2026-09-21 13:20:34 UTC",
+        "member": "TTS Bot#3590",
+        "member_id": 513423712582762502
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 14:51:54 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> warn <@783340856789696513> ; gay"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 15:37:18 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "<@1487839805596241961> warn <@783340856789696513> ; gay"
+    },
+    {
+        "type": "message",
+        "time": "2026-09-21 15:37:29 UTC",
+        "author": "dragonplaysss",
+        "author_id": 708390973712891976,
+        "channel": "general",
+        "channel_id": 1489351992118874177,
+        "content": "gay"
     }
 ]

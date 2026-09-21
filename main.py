@@ -10,6 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from cogs.core.responses import response_engine
 from cogs.module_registry import (
     CORE_MODULE,
     all_extensions,
@@ -22,7 +23,12 @@ from cogs.module_registry import (
     slash_commands_for_module,
     visible_slash_commands,
 )
-from cogs.server_config import get_guild_config, load_config
+from cogs.server_config import (
+    get_guild_config,
+    load_config,
+    is_roblox_auth_guild_authorized,
+    is_owner_id,
+)
 from cogs.trigger_parser import parse_shorekeeper_trigger
 
 
@@ -39,6 +45,7 @@ if hasattr(sys.stderr, "reconfigure"):
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 LOCK_HANDLE = None
+
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -60,6 +67,8 @@ SKIP_FILES = {
     "views.py",
 }
 
+SKIP_EXTENSION_PREFIXES = ("cogs.core.",)
+
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -75,7 +84,65 @@ class MyBot(commands.Bot):
             "visible": 0,
             "synced": 0,
         }
+        # Emoji cache: stores emoji name -> emoji ID mappings
+        self.emoji_cache = {}
         self.tree.on_error = self._on_app_command_error
+
+    async def _upload_and_cache_emojis(self):
+        """Upload local emoji assets as Discord custom emojis and cache their IDs."""
+        try:
+            emojis_dir = Path(__file__).resolve().parent / "assets" / "emojis"
+            if not emojis_dir.exists():
+                print(f"[EMOJI] Directory not found: {emojis_dir}")
+                return
+
+            print("[EMOJI] Uploading emoji assets as Discord custom emojis...")
+
+            # Mapping of filename to emoji name for Shorekeeper emojis
+            filename_to_emoji_name = {
+                "success.jpg": "success",
+                "love.gif": "love",
+                "error.jpg": "error",
+                "warning.jpg": "warning",
+                "verification.jpg": "verification",
+                "moderation.jpg": "moderation",
+                "security.jpg": "security",
+                "roblox.jpg": "roblox",
+                "confused.jpg": "confused",
+            }
+
+            for filename, emoji_name in filename_to_emoji_name.items():
+                file_path = emojis_dir / filename
+                if not file_path.exists():
+                    print(f"[EMOJI] Asset not found: {file_path}")
+                    continue
+
+                try:
+                    # Read the image file
+                    with open(file_path, "rb") as f:
+                        image_data = f.read()
+
+                    # Check if emoji already exists
+                    existing_emoji = discord.utils.get(self.emojis, name=emoji_name)
+                    if existing_emoji:
+                        # Emoji already exists, use its ID
+                        self.emoji_cache[emoji_name] = existing_emoji.id
+                        print(f"[EMOJI] Using existing emoji: {emoji_name} (ID: {existing_emoji.id})")
+                    else:
+                        # Upload new emoji
+                        emoji = await self.create_custom_emoji(name=emoji_name, image=image_data)
+                        self.emoji_cache[emoji_name] = emoji.id
+                        print(f"[EMOJI] Uploaded emoji: {emoji_name} (ID: {emoji.id})")
+
+                except Exception as e:
+                    print(f"[EMOJI] Failed to process emoji {emoji_name}: {e}")
+
+            print(f"[EMOJI] Cached {len(self.emoji_cache)} emojis")
+
+        except Exception as e:
+            print(f"[EMOJI] Error in emoji upload process: {e}")
+            traceback.print_exc()
+
 
     def load_db(self):
         try:
@@ -91,6 +158,13 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         print("Loading cogs...")
 
+        # Upload emoji assets as Discord custom emojis and cache their IDs
+        await self._upload_and_cache_emojis()
+        # Set the bot's emoji cache for ShorekeeperEmojis
+        from cogs.shorekeeper_responses import ShorekeeperEmojis
+        ShorekeeperEmojis.bot_emoji_cache = self.emoji_cache
+
+        
         print(
             "[INTENTS] "
             f"members={self.intents.members} "
@@ -126,21 +200,8 @@ class MyBot(commands.Bot):
             await self.sync_visible_commands(reason="startup")
 
     def discover_extensions(self):
-        ordered = []
-        for extension in all_extensions():
-            if extension not in ordered:
-                ordered.append(extension)
-
-        for path in sorted((BASE_DIR / "cogs").rglob("*.py")):
-            if path.name in SKIP_FILES:
-                continue
-            if path.name.startswith("_"):
-                continue
-            module_path = ".".join(path.relative_to(BASE_DIR).with_suffix("").parts)
-            if module_path not in ordered:
-                ordered.append(module_path)
-
-        return ordered
+        # Use the authoritative extension list from module registry
+        return list(all_extensions())
 
     async def on_message(self, message):
         print(
@@ -196,10 +257,24 @@ class MyBot(commands.Bot):
         traceback.print_exception(type(error), error, error.__traceback__)
         try:
             if interaction.response.is_done():
-                await interaction.followup.send("Command failed. Check bot logs for traceback.", ephemeral=True)
+                embed = response_engine.failure(
+                    title="Command Failed",
+                    description="Something went wrong while carrying out the request. Please check the bot logs for more details."
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message("Command failed. Check bot logs for traceback.", ephemeral=True)
-        except Exception:
+                embed = response_engine.failure(
+                    title="Command Failed",
+                    description="Something went wrong while carrying out the request. Please check the bot logs for more details."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+        except discord.NotFound as e:
+            # Interaction likely expired (unknown interaction)
+            # Log it and stop
+            print(f"[INTERACTION EXPIRED] Failed to send followup/response: {e}")
+        except Exception as e:
+            # Any other unexpected error
+            print(f"[ERROR HANDLER ERROR] {e}")
             traceback.print_exc()
 
     def mention_command_registered(self, keyword):
@@ -437,6 +512,52 @@ class MyBot(commands.Bot):
                     visible_modules=visible_modules,
                 )
                 continue
+
+            # Category 3: Roblox Auth management commands (always visible for owner access)
+            if command_name == "rbxauthguild":
+                self._log_visibility_decision(
+                    command,
+                    guild_id,
+                    module,
+                    selected=True,
+                    reason="owner_management_command",
+                    allowed=allowed,
+                    legacy_allowed=legacy_allowed,
+                    visible_modules=visible_modules,
+                )
+                selected.append(command)
+                continue
+
+            # Category 2: Roblox Auth normal commands (follow Roblox Auth guild authorization)
+            if module == "roblox_auth":
+                # Check if guild is authorized for Roblox Auth (independent of Shorekeeper activation)
+                is_authorized = is_roblox_auth_guild_authorized(guild_id) if guild_id is not None else False
+                if is_authorized:
+                    self._log_visibility_decision(
+                        command,
+                        guild_id,
+                        module,
+                        selected=True,
+                        reason="roblox_auth_authorized",
+                        allowed=allowed,
+                        legacy_allowed=legacy_allowed,
+                        visible_modules=visible_modules,
+                    )
+                    selected.append(command)
+                else:
+                    self._log_visibility_decision(
+                        command,
+                        guild_id,
+                        module,
+                        selected=False,
+                        reason="roblox_auth_not_authorized",
+                        allowed=allowed,
+                        legacy_allowed=legacy_allowed,
+                        visible_modules=visible_modules,
+                    )
+                continue
+
+            # Category 1: Normal Shorekeeper commands (follow normal Shorekeeper activation rules)
             if module in visible_modules:
                 self._log_visibility_decision(
                     command,
@@ -529,51 +650,51 @@ class MyBot(commands.Bot):
                 self._log_synced_commands(cleared, "global", f"{reason} clear stale globals", [])
                 self._restore_tree_commands()
 
-            for target in targets:
-                if target is None:
-                    global_modules = enabled_modules if enabled_modules is not None else {CORE_MODULE}
-                    selected = self._select_visible_commands(global_modules)
+                for target in targets:
+                    if target is None:
+                        global_modules = enabled_modules if enabled_modules is not None else {CORE_MODULE}
+                        selected = self._select_visible_commands(global_modules)
+                        visible_names = [command.name for command in selected]
+                        self.slash_health["visible"] = len(visible_names)
+                        print("[SLASH VISIBLE]")
+                        for command in selected:
+                            print(self._command_label(command))
+                        self.tree.clear_commands(guild=None)
+                        for command in selected:
+                            self._safe_add_command(command)
+                        synced = await self.tree.sync()
+                        total_synced += len(synced)
+                        self._verify_synced_matches_selected(synced, selected, None)
+                        self._log_synced_commands(synced, "global", reason, visible_names)
+                        continue
+
+                    guild_config = get_guild_config(target.id)
+                    target_enabled_modules = (
+                        enabled_modules
+                        if enabled_modules is not None
+                        else visible_slash_commands(guild_config, guild_id=target.id)
+                    )
+                    print(
+                        "[SLASH VISIBILITY MODULES] "
+                        f"guild={target.id} modules={', '.join(sorted(target_enabled_modules))}"
+                    )
+                    selected = self._select_visible_commands(
+                        target_enabled_modules,
+                        guild_id=target.id,
+                    )
                     visible_names = [command.name for command in selected]
                     self.slash_health["visible"] = len(visible_names)
                     print("[SLASH VISIBLE]")
                     for command in selected:
                         print(self._command_label(command))
-                    self.tree.clear_commands(guild=None)
+                    self.tree.clear_commands(guild=target)
                     for command in selected:
-                        self._safe_add_command(command)
-                    synced = await self.tree.sync()
-                    total_synced += len(synced)
-                    self._verify_synced_matches_selected(synced, selected, None)
-                    self._log_synced_commands(synced, "global", reason, visible_names)
-                    continue
-
-                guild_config = get_guild_config(target.id)
-                target_enabled_modules = (
-                    enabled_modules
-                    if enabled_modules is not None
-                    else visible_slash_commands(guild_config, guild_id=target.id)
-                )
-                print(
-                    "[SLASH VISIBILITY MODULES] "
-                    f"guild={target.id} modules={', '.join(sorted(target_enabled_modules))}"
-                )
-                selected = self._select_visible_commands(
-                    target_enabled_modules,
-                    guild_id=target.id,
-                )
-                visible_names = [command.name for command in selected]
-                self.slash_health["visible"] = len(visible_names)
-                print("[SLASH VISIBLE]")
-                for command in selected:
-                    print(self._command_label(command))
-                self.tree.clear_commands(guild=target)
-                for command in selected:
-                    self._safe_add_command(command, guild=target)
-                synced = await self.tree.sync(guild=target)
-                total_synced += len(synced)
-                print(f"Guild sync result: guild={target.id} reason={reason} visible={len(visible_names)} synced={len(synced)}")
-                self._verify_synced_matches_selected(synced, selected, target.id)
-                self._log_synced_commands(synced, f"guild {target.id}", reason, visible_names)
+                        self._safe_add_command(command, guild=target)
+                    syned = await self.tree.sync(guild=target)
+                    total_synced += len(syned)
+                    print(f"Guild sync result: guild={target.id} reason={reason} visible={len(visible_names)} synced={len(syned)}")
+                    self._verify_synced_matches_selected(syned, selected, target.id)
+                    self._log_synced_commands(syned, f"guild {target.id}", reason, visible_names)
         except Exception as e:
             print(f"[SLASH SYNC FAILED] {type(e).__name__}: {e}")
         finally:

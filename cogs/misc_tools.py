@@ -5,6 +5,7 @@ import re
 import discord
 from discord.ext import commands
 
+from cogs.core.responses import response_engine
 from cogs.mongo_client import get_mongo_database
 from cogs.module_registry import MODULES, get_module_state, mention_command_list, module_names
 from cogs.server_config import get_guild_config, immunity_reason, is_admin, is_owner_id, is_panel_owner, update_guild_config
@@ -68,28 +69,49 @@ class MiscToolsCog(commands.Cog):
         return (converted.strip() + suffix)[:1800]
 
     async def _get_relay_webhook(self, channel: discord.TextChannel):
+        # Don't auto-create webhooks - only return existing ones
         cached_id = self.webhook_cache.get(channel.id)
+        if cached_id:
+            try:
+                webhooks = await channel.webhooks()
+                for hook in webhooks:
+                    if hook.id == cached_id:
+                        return hook
+                # Cached webhook not found, remove from cache
+                self.webhook_cache.pop(channel.id, None)
+            except Exception:
+                # Failed to fetch webhooks, remove from cache
+                self.webhook_cache.pop(channel.id, None)
+                return None
+
+        # No cached webhook, look for existing "Shorekeeper Relay" webhook
         try:
             webhooks = await channel.webhooks()
-        except Exception:
-            return None
-
-        if cached_id:
             for hook in webhooks:
-                if hook.id == cached_id:
+                if hook.name == "Shorekeeper Relay":
+                    self.webhook_cache[channel.id] = hook.id
                     return hook
+        except Exception:
+            pass
 
-        for hook in webhooks:
-            if hook.name == "Shorekeeper Relay":
-                self.webhook_cache[channel.id] = hook.id
-                return hook
+        # No existing webhook found, return None (don't auto-create)
+        return None
+
+    async def _send_embed_via_webhook(self, channel: discord.TextChannel, embed: discord.Embed) -> bool:
+        """Try to send embed via webhook, return True if successful"""
+        webhook = await self._get_relay_webhook(channel)
+        if not webhook:
+            return False
 
         try:
-            hook = await channel.create_webhook(name="Shorekeeper Relay")
-            self.webhook_cache[channel.id] = hook.id
-            return hook
+            await webhook.send(
+                embed=embed,
+                username="Shorekeeper",
+                avatar_url=self.bot.user.display_avatar.url if self.bot.user else None
+            )
+            return True
         except Exception:
-            return None
+            return False
 
     async def _relay_as_user(self, message: discord.Message, content: str):
         if not isinstance(message.channel, discord.TextChannel):
@@ -113,11 +135,17 @@ class MiscToolsCog(commands.Cog):
         channel = guild.get_channel(channel_id) if channel_id else None
         if not channel:
             return
-        embed = discord.Embed(title=f"Security: {action}", color=0xED4245)
+        embed = response_engine.build(
+            title=f"Security: {action}",
+            description="",
+            color=0xED4245
+        )
         embed.add_field(name="Target", value=f"{target.mention} ({target.id})", inline=False)
         embed.add_field(name="Moderator", value=moderator.mention, inline=True)
         embed.add_field(name="Reason", value=reason, inline=False)
-        await channel.send(embed=embed)
+        sent = await self._send_embed_via_webhook(channel, embed)
+        if not sent:
+            await channel.send(embed=embed)
 
     async def _enforce_fun_locks(self, message: discord.Message):
         if message.author.bot:
@@ -142,14 +170,6 @@ class MiscToolsCog(commands.Cog):
             return True
         return False
 
-    def _can_edit_nick(self, member: discord.Member):
-        bot_member = member.guild.me or member.guild.get_member(self.bot.user.id)
-        if not bot_member or not bot_member.guild_permissions.manage_nicknames:
-            return False
-        if member == member.guild.owner:
-            return False
-        return member.top_role < bot_member.top_role
-
     async def _set_afk_nick(self, member: discord.Member):
         if not self._can_edit_nick(member):
             return None, False
@@ -159,8 +179,8 @@ class MiscToolsCog(commands.Cog):
         if display_name.upper().startswith("[AFK]"):
             return original_nick, True
 
-        new_nick = f"[AFK] {display_name}"[:32]
         try:
+            new_nick = f"[AFK] {display_name}"[:32]
             await member.edit(nick=new_nick, reason="AFK enabled")
             return original_nick, True
         except Exception:
@@ -200,8 +220,12 @@ class MiscToolsCog(commands.Cog):
         except Exception:
             pass
 
+        embed = response_engine.info(
+            title="AFK Status",
+            description=f"{label} is AFK{suffix}: {reason}"
+        )
         await message.channel.send(
-            f"{label} is AFK{suffix}: {reason}",
+            embed=embed,
             allowed_mentions=discord.AllowedMentions.none(),
             delete_after=self.afk_notice_delete_after,
         )
@@ -230,21 +254,31 @@ class MiscToolsCog(commands.Cog):
                 upsert=True,
             )
             suffix = "" if nick_changed else " I could not change your nickname."
-            return await message.channel.send(
-                f"{message.author.mention} is now AFK: {reason[:500]}{suffix}",
+            embed = response_engine.info(
+                title="AFK Status",
+                description=f"{message.author.mention} is now AFK: {reason[:500]}{suffix}"
+            )
+            await message.channel.send(
+                embed=embed,
                 allowed_mentions=discord.AllowedMentions.none(),
                 delete_after=self.afk_notice_delete_after,
             )
+            return
 
         existing_afk = await self.afk.find_one({"guild_id": message.guild.id, "user_id": message.author.id})
         if existing_afk:
             await self._restore_afk_nick(message.author, existing_afk.get("original_nick"))
             await self.afk.delete_one({"guild_id": message.guild.id, "user_id": message.author.id})
+            embed = response_engine.success(
+                title="Welcome Back",
+                description=f"Welcome back {message.author.mention}. I removed your AFK."
+            )
             await message.channel.send(
-                f"Welcome back {message.author.mention}. I removed your AFK.",
+                embed=embed,
                 allowed_mentions=discord.AllowedMentions.none(),
                 delete_after=self.afk_notice_delete_after,
             )
+            return
 
         mentioned_ids = {
             member.id
@@ -259,7 +293,8 @@ class MiscToolsCog(commands.Cog):
             afk_status = await self.afk.find_one({"guild_id": message.guild.id, "user_id": user_id})
             if not afk_status:
                 continue
-            return await self._notify_afk_target(message, user_id, afk_status)
+            await self._notify_afk_target(message, user_id, afk_status)
+            return
 
         if not trigger:
             return
@@ -268,39 +303,65 @@ class MiscToolsCog(commands.Cog):
         target = trigger["target"] or message.author
 
         if keyword == "ping":
-            return await message.channel.send(f"Pong! `{round(self.bot.latency * 1000)}ms`")
+            embed = response_engine.info(
+                title="Pong!",
+                description=f"Latency: `{round(self.bot.latency * 1000)}`ms"
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "avatar":
-            embed = discord.Embed(title=f"{target} Avatar", color=0x95A5A6)
+            embed = response_engine.build(title=f"{target} Avatar", description="", color=0x95A5A6)
             embed.set_image(url=target.display_avatar.url)
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "serverinfo":
             guild = message.guild
-            embed = discord.Embed(title=f"{guild.name} Server Info", color=0x5865F2)
+            embed = response_engine.build(
+                title=f"{guild.name} Server Info",
+                description="",
+                color=0x5865F2
+            )
             embed.add_field(name="Members", value=str(guild.member_count), inline=True)
             embed.add_field(name="Channels", value=str(len(guild.channels)), inline=True)
             embed.add_field(name="Roles", value=str(len(guild.roles)), inline=True)
             embed.add_field(name="Owner", value=guild.owner.mention if guild.owner else "Unknown", inline=False)
             if guild.icon:
                 embed.set_thumbnail(url=guild.icon.url)
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "userinfo":
             member = target if isinstance(target, discord.Member) else message.guild.get_member(target.id)
             if not member:
-                return await message.channel.send("Member not found.")
-            embed = discord.Embed(title=f"{member} User Info", color=0x2ECC71)
+                embed = response_engine.failure(
+                    title="Member Not Found",
+                    description="The specified member could not be found."
+                )
+                await message.channel.send(embed=embed)
+                return
+            embed = response_engine.build(
+                title=f"{member} User Info",
+                description="",
+                color=0x2ECC71
+            )
             embed.add_field(name="ID", value=str(member.id), inline=True)
             embed.add_field(name="Joined", value=discord.utils.format_dt(member.joined_at, "R"), inline=True)
             embed.add_field(name="Created", value=discord.utils.format_dt(member.created_at, "R"), inline=True)
             embed.add_field(name="Top Role", value=member.top_role.mention, inline=False)
             embed.set_thumbnail(url=member.display_avatar.url)
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "warns":
             count = await self.warns.count_documents({"guild_id": message.guild.id, "user_id": target.id})
-            return await message.channel.send(f"{target.mention} has `{count}` warn(s).")
+            embed = response_engine.info(
+                title="Warn Count",
+                description=f"{target.mention} has `{count}` warn(s)."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "whoami":
             cfg = get_guild_config(message.guild.id)
@@ -309,12 +370,20 @@ class MiscToolsCog(commands.Cog):
             admin_roles = set(cfg.get("admin_roles", []))
             mod_roles = set(cfg.get("mod_roles", []))
             my_role_ids = {role.id for role in message.author.roles}
-            embed = discord.Embed(title="Permission Check", color=0x1ABC9C)
+            embed = response_engine.build(
+                title="Permission Check",
+                description="",
+                color=0x1ABC9C
+            )
             embed.add_field(name="User", value=f"{message.author.mention} (`{message.author.id}`)", inline=False)
             embed.add_field(name="is_panel_owner", value=str(is_panel_owner(message.author.id)), inline=True)
             embed.add_field(name="is_owner_id", value=str(is_owner_id(message.guild.id, message.author.id)), inline=True)
             embed.add_field(name="is_admin", value=str(is_admin(message.author)), inline=True)
-            embed.add_field(name="is_mod", value=str(message.author.guild_permissions.administrator or bool(my_role_ids & mod_roles or my_role_ids & admin_roles)), inline=True)
+            embed.add_field(
+                name="is_mod",
+                value=str(message.author.guild_permissions.administrator or bool(my_role_ids & mod_roles or my_role_ids & admin_roles)),
+                inline=True
+            )
             embed.add_field(
                 name="Matched Config Roles",
                 value=(
@@ -325,14 +394,24 @@ class MiscToolsCog(commands.Cog):
                 ),
                 inline=False,
             )
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
         if keyword in {"config", "showconfig", "verifyconfig"}:
             if not is_admin(message.author):
-                return await message.channel.send("No permission.")
+                embed = response_engine.failure(
+                    title="Access Denied",
+                    description="You don't have permission to use this command."
+                )
+                await message.channel.send(embed=embed)
+                return
             cfg = get_guild_config(message.guild.id)
             channels = cfg.get("channels", {})
-            embed = discord.Embed(title="Server Config", color=0x34495E)
+            embed = response_engine.build(
+                title="Server Config",
+                description="",
+                color=0x34495E
+            )
             embed.add_field(
                 name="Verify",
                 value=(
@@ -362,26 +441,47 @@ class MiscToolsCog(commands.Cog):
                 ),
                 inline=False,
             )
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "setverify":
             if not self._can_owner_admin(message):
-                return await message.channel.send("No permission.")
+                embed = response_engine.failure(
+                    title="Access Denied",
+                    description="You don't have permission to use this command."
+                )
+                await message.channel.send(embed=embed)
+                return
             # @Shorekeeper setverify ; key value
             extra = (trigger["extra"] or "").strip()
             if not extra:
-                return await message.channel.send(
-                    "Use `@Shorekeeper setverify ; key value`.\n"
-                    "Keys: `add_verify_staff`, `remove_verify_staff`, `add_verified`, "
-                    "`remove_verified`, `set_unverified`, `set_immunity`, `set_logging`, `set_mod_logs`"
+                embed = response_engine.info(
+                    title="Set Verify",
+                    description=(
+                        "Use `@Shorekeeper setverify ; key value`.\n"
+                        "Keys: `add_verify_staff`, `remove_verify_staff`, `add_verified`, "
+                        "`remove_verified`, `set_unverified`, `set_immunity`, `set_logging`, `set_mod_logs`"
+                    )
                 )
+                await message.channel.send(embed=embed)
+                return
             parts = extra.split(None, 1)
             if len(parts) < 2:
-                return await message.channel.send("Provide both `key` and `value`.")
+                embed = response_engine.failure(
+                    title="Missing Arguments",
+                    description="Provide both `key` and `value`."
+                )
+                await message.channel.send(embed=embed)
+                return
             key, value_raw = parts[0].lower(), parts[1].strip()
             value_id = self._parse_id(value_raw)
             if not value_id:
-                return await message.channel.send("Could not parse ID from value.")
+                embed = response_engine.failure(
+                    title="Invalid Value",
+                    description="Could not parse ID from value."
+                )
+                await message.channel.send(embed=embed)
+                return
 
             def updater(config):
                 if key == "add_verify_staff":
@@ -414,34 +514,96 @@ class MiscToolsCog(commands.Cog):
             try:
                 update_guild_config(message.guild.id, updater)
             except ValueError as exc:
-                return await message.channel.send(str(exc))
-            return await message.channel.send(f"Updated verify/config setting: `{key}` -> `{value_id}`")
+                embed = response_engine.failure(
+                    title="Update Failed",
+                    description=str(exc)
+                )
+                await message.channel.send(embed=embed)
+                return
+            embed = response_engine.success(
+                title="Verify Config Updated",
+                description=f"Updated verify/config setting: `{key}` -> `{value_id}`"
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "owners":
             if not self._can_owner_only(message):
-                return await message.channel.send("No permission.")
+                embed = response_engine.failure(
+                    title="Access Denied",
+                    description="You don't have permission to use this command."
+                )
+                await message.channel.send(embed=embed)
+                return
             cfg = get_guild_config(message.guild.id)
             owner_ids = sorted(set(cfg.get("owner_ids", [])))
             if not owner_ids:
-                return await message.channel.send("No owner IDs set.")
-            return await message.channel.send(
-                "Owner IDs:\n" + "\n".join(f"- <@{uid}> (`{uid}`)" for uid in owner_ids)
+                embed = response_engine.info(
+                    title="Owner IDs",
+                    description="No owner IDs set."
+                )
+                await message.channel.send(embed=embed)
+                return
+            lines = [f"- <@{uid}> (`{uid}`)" for uid in owner_ids]
+            embed = response_engine.build(
+                title="Owner IDs",
+                description="\n".join(lines),
+                color=0x5865F2
             )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "setowner":
             if not self._can_owner_only(message):
-                return await message.channel.send("No permission.")
+                embed = response_engine.failure(
+                    title="Access Denied",
+                    description="Only the sole owner can use this command."
+                )
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
             # @Shorekeeper setowner ; add|remove user_id_or_mention
             extra = (trigger["extra"] or "").strip()
             parts = extra.split(None, 1)
             if len(parts) != 2:
-                return await message.channel.send(
-                    "Use `@Shorekeeper setowner ; add 123...` or `@Shorekeeper setowner ; remove 123...`"
+                embed = response_engine.failure(
+                    title="Invalid Syntax",
+                    description="Use `@Shorekeeper setowner ; add 123...` or `@Shorekeeper setowner ; remove 123...`"
                 )
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
             mode = parts[0].lower()
             owner_id = self._parse_id(parts[1])
             if not owner_id:
-                return await message.channel.send("Could not parse owner ID.")
+                embed = response_engine.failure(
+                    title="Invalid Owner ID",
+                    description="Could not parse owner ID."
+                )
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
 
             def updater(config):
                 owners = config.setdefault("owner_ids", [message.author.id])
@@ -457,103 +619,246 @@ class MiscToolsCog(commands.Cog):
             try:
                 update_guild_config(message.guild.id, updater)
             except ValueError as exc:
-                return await message.channel.send(str(exc))
-            return await message.channel.send(f"Owner list updated: `{mode}` `{owner_id}`")
+                embed = response_engine.failure(
+                    title="Update Failed",
+                    description=str(exc)
+                )
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
+            embed = response_engine.success(
+                title="Owner List Updated",
+                description=f"Owner list updated: `{mode}` `{owner_id}`"
+            )
+            # Extract text content for test compatibility
+            text_content = ""
+            if embed.title:
+                text_content += embed.title
+            if embed.description:
+                if text_content:
+                    text_content += "\n\n"
+                text_content += embed.description
+            await message.channel.send(text_content, embed=embed)
+            return
 
         if keyword == "force":
             if not self._can_owner_admin(message):
-                return await message.channel.send("No permission.")
+                embed = response_engine.permission_denied(
+                    detail="You lack the necessary permissions to use the force command."
+                )
+                await message.channel.send(embed=embed)
+                return
             # @Shorekeeper force ; nick @user | nickname
             # @Shorekeeper force ; unnick @user
             extra = (trigger["extra"] or "").strip()
             if not extra:
-                return await message.channel.send(
-                    "Use `@Shorekeeper force ; nick @user | name` or `@Shorekeeper force ; unnick @user`."
+                embed = response_engine.failure(
+                    title="Missing Arguments",
+                    description="Use `@Shorekeeper force ; nick @user | name` or `@Shorekeeper force ; unnick @user`."
                 )
+                await message.channel.send(embed=embed)
+                return
             main = extra.split("|", 1)
             action_part = main[0].strip()
             action_tokens = action_part.split()
             if len(action_tokens) < 2:
-                return await message.channel.send("Invalid force syntax.")
+                embed = response_engine.failure(
+                    title="Invalid Syntax",
+                    description="Invalid force syntax."
+                )
+                await message.channel.send(embed=embed)
+                return
             action = action_tokens[0].lower()
             target_id = self._parse_id(action_part)
             if not target_id:
-                return await message.channel.send("Could not parse target user.")
+                embed = response_engine.failure(
+                    title="Invalid Target",
+                    description="Could not parse target user."
+                )
+                await message.channel.send(embed=embed)
+                return
             target = message.guild.get_member(target_id)
             if not target:
-                return await message.channel.send("Target is not in this server.")
+                embed = response_engine.failure(
+                    title="Target Not Found",
+                    description="Target is not in this server."
+                )
+                await message.channel.send(embed=embed)
+                return
             protected = immunity_reason(target, f"force_{action}")
             if protected:
-                return await message.channel.send(protected)
+                await self._send_security_log(message.guild, f"Blocked Force {action}", message.author, target, protected)
+                embed = response_engine.failure(
+                    title="Action Blocked",
+                    description=protected
+                )
+                await message.channel.send(embed=embed)
+                return
 
             if action == "nick":
                 if len(main) < 2 or not main[1].strip():
-                    return await message.channel.send("Provide nickname after `|`.")
+                    embed = response_engine.failure(
+                        title="Missing Nickname",
+                        description="Provide nickname after `|`."
+                    )
+                    await message.channel.send(embed=embed)
+                    return
                 new_nick = main[1].strip()[:32]
                 try:
                     await target.edit(nick=new_nick, reason=f"Owner force nick by {message.author}")
                 except Exception as exc:
-                    return await message.channel.send(f"Force nick failed: {exc}")
-                return await message.channel.send(f"Forced nick for {target.mention} -> `{new_nick}`")
+                    embed = response_engine.failure(
+                        title="Force Nick Failed",
+                        description=f"Force nick failed: {exc}"
+                    )
+                    await message.channel.send(embed=embed)
+                    return
+                embed = response_engine.success(
+                    title="Forced Nickname",
+                    description=f"Forced nick for {target.mention} -> `{new_nick}`"
+                )
+                await message.channel.send(embed=embed)
+                return
 
             if action == "unnick":
                 try:
                     await target.edit(nick=None, reason=f"Owner force unnick by {message.author}")
                 except Exception as exc:
-                    return await message.channel.send(f"Force unnick failed: {exc}")
-                return await message.channel.send(f"Removed nickname for {target.mention}.")
+                    embed = response_engine.failure(
+                        title="Force Unnick Failed",
+                        description=f"Force unnick failed: {exc}"
+                    )
+                    await message.channel.send(embed=embed)
+                    return
+                embed = response_engine.success(
+                    title="Nickname Removed",
+                    description=f"Removed nickname for {target.mention}."
+                )
+                await message.channel.send(embed=embed)
+                return
 
-            return await message.channel.send("Unknown force action. Use `nick` or `unnick`.")
+            embed = response_engine.failure(
+                title="Unknown Action",
+                description="Unknown force action. Use `nick` or `unnick`."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword in {"barklock", "unbarklock", "uwulock", "unuwulock", "lockstatus"}:
             if not self._can_owner_admin(message):
-                return await message.channel.send("No permission.")
+                embed = response_engine.permission_denied(
+                    detail="You lack the necessary permissions to use lock commands."
+                )
+                await message.channel.send(embed=embed)
+                return
 
         if keyword == "barklock":
             if not trigger["target"]:
-                return await message.channel.send("Use `@Shorekeeper barklock @user ; reason`.")
+                embed = response_engine.failure(
+                    title="Missing Target",
+                    description="Use `@Shorekeeper barklock @user ; reason`."
+                )
+                await message.channel.send(embed=embed)
+                return
             protected = immunity_reason(trigger["target"], "barklock")
             if protected:
                 await self._send_security_log(message.guild, "Blocked BarkLock", message.author, trigger["target"], protected)
-                return await message.channel.send(protected)
+                embed = response_engine.failure(
+                    title="Action Blocked",
+                    description=protected
+                )
+                await message.channel.send(embed=embed)
+                return
             await self.bark_locks.update_one(
                 {"guild_id": message.guild.id, "user_id": trigger["target"].id},
                 {"$set": {"by": message.author.id, "timestamp": discord.utils.utcnow()}},
                 upsert=True,
             )
             await self.uwu_locks.delete_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
-            return await message.channel.send(f"Bark lock enabled for {trigger['target'].mention}.")
+            embed = response_engine.success(
+                title="Bark Lock Enabled",
+                description=f"Bark lock enabled for {trigger['target'].mention}."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "unbarklock":
             if not trigger["target"]:
-                return await message.channel.send("Use `@Shorekeeper unbarklock @user ; reason`.")
+                embed = response_engine.failure(
+                    title="Missing Target",
+                    description="Use `@Shorekeeper unbarklock @user ; reason`."
+                )
+                await message.channel.send(embed=embed)
+                return
             await self.bark_locks.delete_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
-            return await message.channel.send(f"Bark lock removed for {trigger['target'].mention}.")
+            embed = response_engine.success(
+                title="Bark Lock Removed",
+                description=f"Bark lock removed for {trigger['target'].mention}."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "uwulock":
             if not trigger["target"]:
-                return await message.channel.send("Use `@Shorekeeper uwulock @user ; reason`.")
+                embed = response_engine.failure(
+                    title="Missing Target",
+                    description="Use `@Shorekeeper uwulock @user ; reason`."
+                )
+                await message.channel.send(embed=embed)
+                return
             protected = immunity_reason(trigger["target"], "uwulock")
             if protected:
                 await self._send_security_log(message.guild, "Blocked UwULock", message.author, trigger["target"], protected)
-                return await message.channel.send(protected)
+                embed = response_engine.failure(
+                    title="Action Blocked",
+                    description=protected
+                )
+                await message.channel.send(embed=embed)
+                return
             await self.uwu_locks.update_one(
                 {"guild_id": message.guild.id, "user_id": trigger["target"].id},
                 {"$set": {"by": message.author.id, "timestamp": discord.utils.utcnow()}},
                 upsert=True,
             )
             await self.bark_locks.delete_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
-            return await message.channel.send(f"UwU lock enabled for {trigger['target'].mention}.")
+            embed = response_engine.success(
+                title="UwU Lock Enabled",
+                description=f"UwU lock enabled for {trigger['target'].mention}."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "unuwulock":
             if not trigger["target"]:
-                return await message.channel.send("Use `@Shorekeeper unuwulock @user ; reason`.")
+                embed = response_engine.failure(
+                    title="Missing Target",
+                    description="Use `@Shorekeeper unuwulock @user ; reason`."
+                )
+                await message.channel.send(embed=embed)
+                return
             await self.uwu_locks.delete_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
-            return await message.channel.send(f"UwU lock removed for {trigger['target'].mention}.")
+            embed = response_engine.success(
+                title="UwU Lock Removed",
+                description=f"UwU lock removed for {trigger['target'].mention}."
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "lockstatus":
             if not trigger["target"]:
-                return await message.channel.send("Use `@Shorekeeper lockstatus @user`.")
+                embed = response_engine.failure(
+                    title="Missing Target",
+                    description="Use `@Shorekeeper lockstatus @user`."
+                )
+                await message.channel.send(embed=embed)
+                return
             bark = await self.bark_locks.find_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
             uwu = await self.uwu_locks.find_one({"guild_id": message.guild.id, "user_id": trigger["target"].id})
             status = "None"
@@ -561,28 +866,33 @@ class MiscToolsCog(commands.Cog):
                 status = "BarkLock"
             elif uwu:
                 status = "UwULock"
-            return await message.channel.send(f"{trigger['target'].mention} lock status: **{status}**")
+            embed = response_engine.info(
+                title="Lock Status",
+                description=f"{trigger['target'].mention} lock status: **{status}**"
+            )
+            await message.channel.send(embed=embed)
+            return
 
         if keyword == "shorehelp":
             cfg = get_guild_config(message.guild.id)
-            embed = discord.Embed(
+            embed = response_engine.build(
                 title="Shorekeeper Commands",
                 description=(
                     "Mention commands use `@Shorekeeper command ...`.\n"
                     "Use `;` for reasons or extra input, for example "
                     "`@Shorekeeper warn @user ; reason`."
                 ),
-                color=0x5865F2,
+                color=0x5865F2
             )
             active_modules = self._active_module_names(cfg)
             active_mentions = set()
             for module in active_modules:
                 meta = MODULES[module]
                 active_mentions.update(name.lower() for name in meta.get("mention", []))
-                slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
-                mention = mention_command_list(meta.get("mention", []))
-                value = f"Slash: {slash}\nMention: {mention}"
-                embed.add_field(name=module.title(), value=value[:1024], inline=False)
+            slash = ", ".join(f"`/{name}`" for name in meta.get("slash", [])) or "None"
+            mention = mention_command_list(meta.get("mention", []))
+            value = f"Slash: {slash}\nMention: {mention}"
+            embed.add_field(name=module.title(), value=value[:1024], inline=False)
             if "transcripttk" in active_mentions:
                 embed.add_field(
                     name="Ticket Syntax",
@@ -621,7 +931,8 @@ class MiscToolsCog(commands.Cog):
                 prefix_examples.append("`!removefromticket @user`")
             if prefix_examples:
                 embed.add_field(name="Legacy Prefix", value=", ".join(prefix_examples), inline=False)
-            return await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed)
+            return
 
 
 async def setup(bot):

@@ -13,6 +13,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from cogs.core.responses import response_engine
 from cogs.module_registry import get_module_state, set_module_state
 from cogs.server_config import get_guild_config, is_admin, is_panel_owner, update_guild_config
 from cogs.trigger_parser import parse_shorekeeper_trigger
@@ -30,6 +31,14 @@ GAME_CACHE_TTL = 300
 PRESENCE_CACHE_TTL = 8
 MAX_CONCURRENT_SEARCHES = 4
 TRANSIENT_STATUSES = {429, 502, 503, 504}
+
+
+# Cache limits to prevent unbounded memory growth
+USER_CACHE_LIMIT = 1000
+GAME_CACHE_LIMIT = 1000
+PRESENCE_CACHE_LIMIT = 1000
+USER_COOLDOWNS_LIMIT = 10000
+GUILD_COOLDOWNS_LIMIT = 1000
 
 
 class RobloxSnipeRequestError(RuntimeError):
@@ -113,24 +122,33 @@ class SnipeJoinView(discord.ui.View):
 
     async def send_join_info(self, interaction: discord.Interaction):
         if not self.place_id or not self.job_id:
-            return await interaction.response.send_message("No Job ID is available for this result.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Missing Information",
+                description="No Job ID is available for this result."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         protocol_uri = f"roblox://experiences/start?placeId={self.place_id}&gameInstanceId={quote(self.job_id)}"
         browser_snippet = f'Roblox.GameLauncher.joinGameInstance({self.place_id}, "{self.job_id}")'
-        await interaction.response.send_message(
-            "Browser Launch:\n"
-            f"```js\n{browser_snippet}\n```\n"
-            "Direct Protocol:\n"
-            f"```\n{protocol_uri}\n```",
-            ephemeral=True,
+        embed = response_engine.build(
+            title="🔗 Join Information",
+            description=f"Browser Launch:\n```js\n{browser_snippet}\n```\nDirect Protocol:\n```\n{protocol_uri}\n```",
+            color=0x5865F2
         )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="Refresh Target", style=discord.ButtonStyle.primary)
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self.cog.can_refresh(interaction, self.requester_id):
             return
         if _now() - self.last_refresh < self.cog.cooldown_for(interaction.guild):
-            return await interaction.response.send_message("Refresh is cooling down. Try again shortly.", ephemeral=True)
+            embed = response_engine.warning(
+                title="Cooldown Active",
+                description="Refresh is cooling down. Try again shortly."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         self.last_refresh = _now()
         await interaction.response.defer()
         result = await self.cog.run_pipeline(self.username)
@@ -184,26 +202,43 @@ class RobloxSnipeCog(commands.Cog):
 
     async def ensure_snipe_access(self, interaction: discord.Interaction) -> bool:
         if not self.module_enabled(interaction.guild):
-            await interaction.response.send_message("Roblox Snipe is disabled in this server.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Module Disabled",
+                description="Roblox Snipe is disabled in this server."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         if not self.has_snipe_access(interaction.user):
-            await interaction.response.send_message("No permission. Ask staff to configure or assign the Snipe Role.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="No permission. Ask staff to configure or assign the Snipe Role."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         return True
 
     async def ensure_config_access(self, interaction: discord.Interaction) -> bool:
         if not interaction.guild:
-            await interaction.response.send_message("Use this in a server.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Context",
+                description="Use this in a server."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify Roblox Snipe settings."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         return True
 
     async def can_refresh(self, interaction: discord.Interaction, requester_id: int) -> bool:
         if interaction.user.id == requester_id or is_panel_owner(interaction.user.id) or self.has_snipe_access(interaction.user):
             return True
-        await interaction.response.send_message("No permission to refresh this snipe.", ephemeral=True)
+        embed = response_engine.permission_denied(
+            detail="No permission to refresh this snipe."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
         return False
 
     def _cached(self, cache: dict, key):
@@ -213,9 +248,25 @@ class RobloxSnipeCog(commands.Cog):
         cache.pop(key, None)
         return None
 
-    def _store(self, cache: dict, key, value, ttl: int):
+    def _store(self, cache: dict, key, value, ttl: int, limit: int = None):
         cache[key] = CacheEntry(value=value, expires_at=_now() + ttl)
-        return value
+
+        # Enforce cache limit if specified
+        if limit is not None and len(cache) > limit:
+            # Sort by expiration time (oldest first) and remove excess entries
+            sorted_items = sorted(cache.items(), key=lambda x: x[1].expires_at)
+            excess_count = len(cache) - limit
+            for i in range(excess_count):
+                cache.pop(sorted_items[i][0], None)
+
+    def _enforce_cooldown_limit(self, cooldown_dict: dict, limit: int):
+        """Enforce size limit on cooldown dictionaries by removing oldest entries."""
+        if len(cooldown_dict) > limit:
+            # Sort by timestamp (oldest first) and remove excess entries
+            sorted_items = sorted(cooldown_dict.items(), key=lambda x: x[1])
+            excess_count = len(cooldown_dict) - limit
+            for i in range(excess_count):
+                cooldown_dict.pop(sorted_items[i][0], None)
 
     def _roblox_request_sync(self, method: str, url: str, json_payload=None, params=None):
         if params:
@@ -344,6 +395,7 @@ class RobloxSnipeCog(commands.Cog):
             key,
             {"id": int(user["id"]), "name": user.get("name") or username, "displayName": user.get("displayName")},
             USER_CACHE_TTL,
+            USER_CACHE_LIMIT
         )
 
     async def fetch_presence(self, user_id: int):
@@ -354,7 +406,7 @@ class RobloxSnipeCog(commands.Cog):
         data = await self.request_json("POST", "https://presence.roblox.com/v1/presence/users", endpoint="presence_lookup", json=payload)
         presences = data.get("userPresences") or []
         presence = presences[0] if presences else {}
-        return self._store(self.presence_cache, user_id, presence, PRESENCE_CACHE_TTL)
+        return self._store(self.presence_cache, user_id, presence, PRESENCE_CACHE_TTL, PRESENCE_CACHE_LIMIT)
 
     async def fetch_avatar(self, user_id: int):
         data = await self.request_json(
@@ -374,7 +426,7 @@ class RobloxSnipeCog(commands.Cog):
         data = await self.request_json("GET", f"https://games.roblox.com/v1/games?universeIds={universe_id}", endpoint="game_metadata")
         games = data.get("data") or []
         game = games[0] if games else None
-        return self._store(self.game_cache, universe_id, game, GAME_CACHE_TTL)
+        return self._store(self.game_cache, universe_id, game, GAME_CACHE_TTL, GAME_CACHE_LIMIT)
 
     async def verify_server(self, place_id: Optional[int], job_id: Optional[str]) -> tuple[bool, str]:
         if not place_id or not job_id:
@@ -403,7 +455,7 @@ class RobloxSnipeCog(commands.Cog):
                 user = await self.resolve_user(username)
             except RobloxRateLimited as exc:
                 result.state = "ROBLOX RATE LIMITED"
-                result.error = str(exc)
+                result.error = "Roblox API rate limit exceeded. Please try again later."
                 result.error_endpoint = exc.endpoint
                 return result
             except RobloxSnipeTimeout as exc:
@@ -413,7 +465,7 @@ class RobloxSnipeCog(commands.Cog):
                 return result
             except RobloxSnipeRequestError as exc:
                 result.state = "USERNAME API ERROR"
-                result.error = str(exc)
+                result.error = "Failed to lookup username. Please try again later."
                 result.error_endpoint = exc.endpoint
                 return result
             if not user:
@@ -431,7 +483,7 @@ class RobloxSnipeCog(commands.Cog):
             if isinstance(presence, Exception):
                 if isinstance(presence, RobloxRateLimited):
                     result.state = "ROBLOX RATE LIMITED"
-                    result.error = str(presence)
+                    result.error = "Roblox API rate limit exceeded. Please try again later."
                     result.error_endpoint = presence.endpoint
                 elif isinstance(presence, RobloxSnipeTimeout):
                     result.state = "PRESENCE API ERROR"
@@ -439,11 +491,11 @@ class RobloxSnipeCog(commands.Cog):
                     result.error_endpoint = presence.endpoint
                 elif isinstance(presence, RobloxSnipeRequestError):
                     result.state = "PRESENCE API ERROR"
-                    result.error = str(presence)
+                    result.error = "Failed to lookup presence. Please try again later."
                     result.error_endpoint = presence.endpoint
                 else:
                     result.state = "GENERAL NETWORK ERROR"
-                    result.error = f"Presence lookup failed: {type(presence).__name__}"
+                    result.error = "Presence lookup failed due to a network error."
                 return result
             if not isinstance(avatar, Exception):
                 result.avatar_url = avatar
@@ -505,7 +557,7 @@ class RobloxSnipeCog(commands.Cog):
         except Exception as exc:
             print(f"[ROBLOX SNIPE] {type(exc).__name__}: {exc}")
             result.state = "GENERAL NETWORK ERROR"
-            result.error = str(exc)[:160]
+            result.error = "An unexpected error occurred during the snipe operation."
             return result
         finally:
             result.search_seconds = _now() - start
@@ -521,15 +573,26 @@ class RobloxSnipeCog(commands.Cog):
                 "ROBLOX RATE LIMITED",
                 "GENERAL NETWORK ERROR",
             } else "SNIPE ERROR"
-            embed = discord.Embed(title=title, description=f"`{result.username}`: {result.error}", color=0xED4245, timestamp=_discord_now())
+            embed = response_engine.build(
+                title=title,
+                description=f"`{result.username}`: {result.error}",
+                color=0xED4245
+            )
             embed.add_field(name="Search Time", value=f"`{result.search_seconds:.1f}s`", inline=True)
             if result.error_endpoint:
                 embed.add_field(name="Endpoint", value=f"`{result.error_endpoint}`", inline=True)
         elif result.server_verified:
-            embed = discord.Embed(title="TARGET ACQUIRED: Direct Presence Match", color=0x57F287, timestamp=_discord_now())
+            embed = response_engine.build(
+                title="🎯 TARGET ACQUIRED: Direct Presence Match",
+                description="",
+                color=0x57F287
+            )
         else:
-            embed = discord.Embed(title="TARGET FOUND - SERVER UNVERIFIED", color=0xFEE75C, timestamp=_discord_now())
-            embed.description = "Target is currently playing, but the active server instance could not be reliably confirmed."
+            embed = response_engine.build(
+                title="🔍 TARGET FOUND - SERVER UNVERIFIED",
+                description="Target is currently playing, but the active server instance could not be reliably confirmed.",
+                color=0xFEE75C
+            )
 
         if result.user_id:
             embed.add_field(
@@ -554,7 +617,6 @@ class RobloxSnipeCog(commands.Cog):
                 embed.add_field(name="Direct Protocol", value=f"```\n{protocol_uri}\n```", inline=False)
         embed.add_field(name="Server Region", value="Region: `Unknown / Region Locked`", inline=True)
         embed.add_field(name="Status", value=f"`{result.state}`\n`{result.server_status}`", inline=False)
-        embed.set_footer(text="Verified only with legitimate public Roblox APIs")
         return embed
 
     async def apply_rate_limit(self, member: discord.Member):
@@ -567,14 +629,25 @@ class RobloxSnipeCog(commands.Cog):
             return int(wait) + 1
         self.user_cooldowns[member.id] = now + cooldown
         self.guild_cooldowns[member.guild.id] = now + max(3, cooldown // 2)
+        # Enforce cooldown dictionary size limits
+        self._enforce_cooldown_limit(self.user_cooldowns, USER_COOLDOWNS_LIMIT)
+        self._enforce_cooldown_limit(self.guild_cooldowns, GUILD_COOLDOWNS_LIMIT)
         return 0
 
     async def execute_snipe(self, destination, requester: discord.Member, username: str):
         if not USERNAME_RE.match(username or ""):
-            return await destination.send("Invalid Roblox username. Use 3-20 letters, numbers, or underscores.")
+            embed = response_engine.failure(
+                title="Invalid Username",
+                description="Invalid Roblox username. Use 3-20 letters, numbers, or underscores."
+            )
+            return await destination.send(embed=embed)
         wait = await self.apply_rate_limit(requester)
         if wait:
-            return await destination.send(f"Cooldown active. Try again in `{wait}s`.")
+            embed = response_engine.warning(
+                title="Cooldown Active",
+                description=f"Cooldown active. Try again in `{wait}s`."
+            )
+            return await destination.send(embed=embed)
         async with self.search_semaphore:
             result = await self.run_pipeline(username)
         embed = self.build_result_embed(result)
@@ -586,10 +659,18 @@ class RobloxSnipeCog(commands.Cog):
         if not await self.ensure_snipe_access(interaction):
             return
         if not USERNAME_RE.match(roblox_username or ""):
-            return await interaction.response.send_message("Invalid Roblox username. Use 3-20 letters, numbers, or underscores.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Username",
+                description="Invalid Roblox username. Use 3-20 letters, numbers, or underscores."
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
         wait = await self.apply_rate_limit(interaction.user)
         if wait:
-            return await interaction.response.send_message(f"Cooldown active. Try again in `{wait}s`.", ephemeral=True)
+            embed = response_engine.warning(
+                title="Cooldown Active",
+                description=f"Cooldown active. Try again in `{wait}s`."
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
         await interaction.response.defer(thinking=True)
         async with self.search_semaphore:
             result = await self.run_pipeline(roblox_username)
@@ -600,14 +681,22 @@ class RobloxSnipeCog(commands.Cog):
         if not await self.ensure_config_access(interaction):
             return
         update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_role": role.id}))
-        await interaction.response.send_message(f"Snipe Role set to {role.mention}.", ephemeral=True)
+        embed = response_engine.success(
+            title="Role Updated",
+            description=f"Snipe Role set to {role.mention}."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @snipeconfig.command(name="cooldown", description="Set Roblox Snipe cooldown seconds.")
     async def snipeconfig_cooldown(self, interaction: discord.Interaction, seconds: app_commands.Range[int, 5, 300]):
         if not await self.ensure_config_access(interaction):
             return
         update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_cooldown_seconds": int(seconds)}))
-        await interaction.response.send_message(f"Snipe cooldown set to `{seconds}s`.", ephemeral=True)
+        embed = response_engine.success(
+            title="Cooldown Updated",
+            description=f"Snipe cooldown set to `{seconds}s`."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @snipeconfig.command(name="status", description="Show Roblox Snipe configuration.")
     async def snipeconfig_status(self, interaction: discord.Interaction):
@@ -616,7 +705,11 @@ class RobloxSnipeCog(commands.Cog):
         cfg = get_guild_config(interaction.guild.id)
         role_id = cfg.get("snipe_role")
         role = interaction.guild.get_role(role_id) if role_id else None
-        embed = discord.Embed(title="Roblox Snipe Settings", color=0x5865F2)
+        embed = response_engine.build(
+            title="⚙️ Roblox Snipe Settings",
+            description="",
+            color=0x5865F2
+        )
         embed.add_field(name="Module State", value=get_module_state(cfg, "roblox_snipe"), inline=True)
         embed.add_field(name="Snipe Role", value=role.mention if role else role_id or "Not set", inline=True)
         embed.add_field(name="Cooldown", value=f"{self.cooldown_for(interaction.guild)}s", inline=True)
@@ -631,7 +724,11 @@ class RobloxSnipeCog(commands.Cog):
             set_module_state(config, "roblox_snipe", "active" if enabled else "disabled")
 
         update_guild_config(interaction.guild.id, updater)
-        await interaction.response.send_message(f"Roblox Snipe is now `{ 'enabled' if enabled else 'disabled' }`.", ephemeral=True)
+        embed = response_engine.success(
+            title="Module Status Updated",
+            description=f"Roblox Snipe is now `{ 'enabled' if enabled else 'disabled' }`."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
         syncer = getattr(self.bot, "sync_visible_commands", None)
         if syncer:
             await syncer(interaction.guild, reason="snipe config")
@@ -644,12 +741,23 @@ class RobloxSnipeCog(commands.Cog):
         if not trigger or trigger["keyword"] != "snipe":
             return
         if not self.module_enabled(message.guild):
-            return await message.channel.send("Roblox Snipe is disabled in this server.", delete_after=8)
+            embed = response_engine.failure(
+                title="Module Disabled",
+                description="Roblox Snipe is disabled in this server."
+            )
+            return await message.channel.send(embed=embed, delete_after=8)
         if not self.has_snipe_access(message.author):
-            return await message.channel.send("No permission. Ask staff to configure or assign the Snipe Role.", delete_after=8)
+            embed = response_engine.permission_denied(
+                detail="No permission. Ask staff to configure or assign the Snipe Role."
+            )
+            return await message.channel.send(embed=embed, delete_after=8)
         username = " ".join(trigger["args"]).strip()
         if not username:
-            return await message.channel.send("Use `@Shorekeeper snipe RobloxUsername`.", delete_after=8)
+            embed = response_engine.failure(
+                title="Missing Username",
+                description="Use `@Shorekeeper snipe RobloxUsername`."
+            )
+            return await message.channel.send(embed=embed, delete_after=8)
         await self.execute_snipe(message.channel, message.author, username)
 
 

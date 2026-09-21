@@ -1,0 +1,95 @@
+﻿ModerationCore loaded: True
+extra_events[on_message]: [<bound method ModuleManager.on_message of <cogs.module_manager.ModuleManager object at 0x000001E14EB8ABA0>>, <bound method ModerationCore.on_message of <cogs.moderation.moderation_core.ModerationCore object at 0x000001E1504012B0>>, <bound method ModerationPanel.on_message of <cogs.moderation.moderation_panel.ModerationPanel object at 0x000001E150402E40>>, <bound method NickLockCog.on_message of <cogs.moderation.nicklock.NickLockCog object at 0x000001E150402F90>>, <bound method RoleToolsCog.on_message of <cogs.moderation.role_tools.RoleToolsCog object at 0x000001E150402CF0>>, <bound method Seal.on_message of <cogs.moderation.seal.Seal object at 0x000001E150403B60>>, <bound method AutoMod.on_message of <cogs.moderation.automod.AutoMod object at 0x000001E1505602F0>>, <bound method Roles.on_message of <cogs.roles.Roles object at 0x000001E150560440>>, <bound method Verify.on_message of <cogs.verify.Verify object at 0x000001E150560590>>, <bound method MiscToolsCog.on_message of <cogs.misc_tools.MiscToolsCog object at 0x000001E150560980>>, <bound method ServerLogger.on_message of <cogs.logger.ServerLogger object at 0x000001E150560C20>>, <bound method AntiNuke.on_message of <cogs.anti_nuke.AntiNuke object at 0x000001E150561550>>, <bound method RobloxAuthCog.on_message of <cogs.roblox_auth.RobloxAuthCog object at 0x000001E150562510>>, <bound method RobloxSnipeCog.on_message of <cogs.roblox_snipe.RobloxSnipeCog object at 0x000001E150562E40>>]
+_listeners keys: []
+--- KICK ok: <@999999999999999999> kick <@111111111111111111>
+    target.calls=[('kick', 'No reason.')]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=Kicked <@111111111111111111>. Case #1.
+    warn_docs=0 action_docs=1
+--- BAN ok: <@999999999999999999> ban <@222222222222222222> ; spamming
+    target.calls=[]
+    guild.bans=[(222222222222222222, 'spamming')]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=Banned <@222222222222222222> (222222222222222222). Case #1.
+    warn_docs=0 action_docs=1
+--- WARN ok: <@999999999999999999> warn <@333333333333333333> ; rude
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=Warned <@333333333333333333>. Total warns: `1` Case #1.
+    warn_docs=1 action_docs=1
+--- TIMEOUT ok: <@999999999999999999> timeout <@444444444444444444> 10m ; cooldown
+    target.calls=[('timeout', datetime.datetime(2026, 9, 17, 12, 52, 28, 132075, tzinfo=datetime.timezone.utc))]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=Muted <@444444444444444444> for 0:10:00. Case #1.
+    warn_docs=0 action_docs=1
+--- UNMUTE ok: <@999999999999999999> unmute <@444444444444444444> ; apology
+    target.calls=[('timeout', None)]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=Unmuted <@444444444444444444>. Case #1.
+    warn_docs=0 action_docs=1
+--- PURGE ok: <@999999999999999999> purge 20
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[20]
+    channel.perms=[]
+    channel.response=Deleted 20 messages. Case #1.
+    warn_docs=0 action_docs=1
+--- LOCK ok: <@999999999999999999> lock
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[('set_permissions', <__main__.FakeChannel.overwrites_for.<locals>.Overwrite object at 0x000001E150402510>, 'lock')]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591B40>
+    warn_docs=0 action_docs=1
+--- UNLOCK ok: <@999999999999999999> unlock
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[('set_permissions', <__main__.FakeChannel.overwrites_for.<locals>.Overwrite object at 0x000001E1504027B0>, 'unlock')]
+    channel.response=<discord.embeds.Embed object at 0x000001E1505915A0>
+    warn_docs=0 action_docs=1
+--- SLOWMODE ok: <@999999999999999999> slowmode 30s
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[('edit', {'slowmode_delay': 30, 'reason': 'slowmode'})]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591BD0>
+    warn_docs=0 action_docs=1
+--- HIERARCHY above bot: <@999999999999999999> kick <@777777777777777777>
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591D80>
+    warn_docs=0 action_docs=0
+--- HIERARCHY equal bot: <@999999999999999999> kick <@888888888888888888>
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591C60>
+    warn_docs=0 action_docs=0
+--- OWNER SHIELD: <@999999999999999999> ban <@424242424242424242>
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591CF0>
+    warn_docs=0 action_docs=0
+--- ACTOR HIERARCHY peer: <@999999999999999999> kick <@919191919191919191>
+    target.calls=[]
+    guild.bans=[]
+    channel.purged=[]
+    channel.perms=[]
+    channel.response=<discord.embeds.Embed object at 0x000001E150591AB0>
+    warn_docs=0 action_docs=0
+owner id constant: 708390973712891976

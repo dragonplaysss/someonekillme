@@ -1,12 +1,19 @@
 import json
 import os
+import threading
 from datetime import datetime
 
 import discord
 from discord.ext import commands
 
+from cogs.core.persistence import atomic_write_json
+from cogs.core.redaction import REDACTED, redact_sensitive
+from cogs.core.responses import response_engine
+from cogs.server_config import is_mod
+from cogs.trigger_parser import parse_shorekeeper_trigger
 
 LOG_FOLDER = "logs"
+_LOG_LOCK = threading.Lock()
 
 
 def ensure_log_folder():
@@ -20,6 +27,26 @@ def get_log_file(guild_id):
 
 def current_time():
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def sanitize_log_content(content):
+    if content is None:
+        return None
+    return redact_sensitive(content)
+
+
+def _sanitize_entry(entry):
+    if isinstance(entry, dict):
+        return {key: _sanitize_entry(value) for key, value in entry.items()}
+    if isinstance(entry, list):
+        return [_sanitize_entry(value) for value in entry]
+    if isinstance(entry, str):
+        return sanitize_log_content(entry)
+    return entry
+
+
+def can_access_logs(member):
+    return is_mod(member)
 
 
 def load_logs(guild_id):
@@ -38,26 +65,21 @@ def load_logs(guild_id):
 
 def save_logs(guild_id, data):
     path = get_log_file(guild_id)
-
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(
-            data,
-            f,
-            indent=4,
-            ensure_ascii=False
-        )
+    atomic_write_json(path, data, ensure_ascii=False)
 
 
 def add_log(guild_id, entry):
-    data = load_logs(guild_id)
+    # Serialize the read-modify-write so concurrent callers (event loop tasks or
+    # worker threads) cannot truncate or overwrite each other's entries.
+    with _LOG_LOCK:
+        data = load_logs(guild_id)
+        data.append(_sanitize_entry(entry))
 
-    data.append(entry)
+        # keep only latest 10000 entries
+        if len(data) > 10000:
+            data = data[-10000:]
 
-    # keep only latest 10000 entries
-    if len(data) > 10000:
-        data = data[-10000:]
-
-    save_logs(guild_id, data)
+        save_logs(guild_id, data)
 
 
 class ServerLogger(commands.Cog):
@@ -76,6 +98,52 @@ class ServerLogger(commands.Cog):
         if not message.guild:
             return
 
+        trigger = parse_shorekeeper_trigger(self.bot, message)
+        if trigger and trigger.get("keyword") == "logs":
+            args = [token.lower() for token in trigger.get("args") or []]
+            if args[:1] != ["export"] and args:
+                return
+            if not can_access_logs(message.author):
+                embed = response_engine.permission_denied("Raw logs stay with authorized staff.")
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
+            path = get_log_file(message.guild.id)
+            if not os.path.exists(path):
+                embed = response_engine.warning("Logs", "No logs found.")
+                # Extract text content for test compatibility
+                text_content = ""
+                if embed.title:
+                    text_content += embed.title
+                if embed.description:
+                    if text_content:
+                        text_content += "\n\n"
+                    text_content += embed.description
+                await message.channel.send(text_content, embed=embed)
+                return
+            embed = response_engine.configuration("Logs Export", "The record is delivered only to authorized staff.")
+            # Extract text content for test compatibility
+            text_content = ""
+            if embed.title:
+                text_content += embed.title
+            if embed.description:
+                if text_content:
+                    text_content += "\n\n"
+                text_content += embed.description
+            await message.channel.send(
+                text_content,
+                embed=embed,
+                file=discord.File(path),
+            )
+            return
+
         add_log(
             message.guild.id,
             {
@@ -85,7 +153,7 @@ class ServerLogger(commands.Cog):
                 "author_id": message.author.id,
                 "channel": str(message.channel),
                 "channel_id": message.channel.id,
-                "content": message.content,
+                "content": sanitize_log_content(message.content),
             }
         )
 
@@ -106,7 +174,7 @@ class ServerLogger(commands.Cog):
                 "author_id": message.author.id,
                 "channel": str(message.channel),
                 "channel_id": message.channel.id,
-                "content": message.content,
+                "content": sanitize_log_content(message.content),
             }
         )
 
@@ -130,8 +198,8 @@ class ServerLogger(commands.Cog):
                 "author_id": before.author.id,
                 "channel": str(before.channel),
                 "channel_id": before.channel.id,
-                "before": before.content,
-                "after": after.content,
+                "before": sanitize_log_content(before.content),
+                "after": sanitize_log_content(after.content),
             }
         )
 
@@ -283,15 +351,34 @@ class ServerLogger(commands.Cog):
 
     @commands.command()
     async def logs(self, ctx):
-        path = get_log_file(ctx.guild.id)
-
-        if not os.path.exists(path):
-            await ctx.send("No logs found.")
+        if not can_access_logs(ctx.author):
+            embed = response_engine.permission_denied(
+                detail="No permission to access raw moderation logs."
+            )
+            # Extract text content for test compatibility
+            text_content = ""
+            if embed.title:
+                text_content += embed.title
+            if embed.description:
+                if text_content:
+                    text_content += "\n\n"
+                text_content += embed.description
+            await ctx.send(text_content, embed=embed)
             return
 
-        await ctx.send(
-            file=discord.File(path)
+        embed = response_engine.info(
+            title="Logs Help",
+            description="Use `@Shorekeeper logs export` for staff-only log export."
         )
+        # Extract text content for test compatibility
+        text_content = ""
+        if embed.title:
+            text_content += embed.title
+        if embed.description:
+            if text_content:
+                text_content += "\n\n"
+            text_content += embed.description
+        await ctx.send(text_content, embed=embed)
 
 
 async def setup(bot):

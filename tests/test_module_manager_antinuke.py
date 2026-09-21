@@ -1,0 +1,194 @@
+import pytest
+
+import cogs.module_manager as mm
+from cogs.module_manager import ModuleManager, set_anti_nuke_mode, toggle_anti_nuke
+
+
+# --- pure config-mutation helpers ---
+
+def test_toggle_anti_nuke_enables():
+    cfg = {"anti_nuke": {"enabled": False, "mode": "monitor"}}
+    toggle_anti_nuke(cfg, True)
+    assert cfg["anti_nuke"]["enabled"] is True
+
+
+def test_toggle_anti_nuke_disables():
+    cfg = {"anti_nuke": {"enabled": True, "mode": "monitor"}}
+    toggle_anti_nuke(cfg, False)
+    assert cfg["anti_nuke"]["enabled"] is False
+
+
+def test_toggle_anti_nuke_creates_section_if_missing():
+    cfg = {}
+    toggle_anti_nuke(cfg, True)
+    assert cfg["anti_nuke"]["enabled"] is True
+
+
+def test_set_anti_nuke_mode_valid():
+    cfg = {"anti_nuke": {"enabled": True, "mode": "monitor"}}
+    set_anti_nuke_mode(cfg, "enforcement")
+    assert cfg["anti_nuke"]["mode"] == "enforcement"
+
+
+def test_set_anti_nuke_mode_invalid_is_ignored():
+    cfg = {"anti_nuke": {"enabled": True, "mode": "monitor"}}
+    set_anti_nuke_mode(cfg, "banana")
+    assert cfg["anti_nuke"]["mode"] == "monitor"
+
+
+# --- command surface (gated + atomic write) ---
+
+
+async def _owner_allowed(self, user, guild):
+    return True
+
+
+async def _denied(self, user, guild):
+    return False
+
+
+class _FakeResponse:
+    def __init__(self):
+        self.sent = []
+
+    async def send_message(self, *args, **kwargs):
+        self.sent.append((args, kwargs))
+
+
+class _FakeGuild:
+    def __init__(self, guild_id=123):
+        self.id = guild_id
+
+
+class _FakeUser:
+    def __init__(self, user_id=1):
+        self.id = user_id
+
+
+class _FakeInteraction:
+    def __init__(self, guild_id=123, user_id=1):
+        self.guild = _FakeGuild(guild_id)
+        self.user = _FakeUser(user_id)
+        self.response = _FakeResponse()
+
+
+def _cog():
+    cog = ModuleManager.__new__(ModuleManager)
+    cog.bot = None
+    return cog
+
+
+def _enable_cmd():
+    return ModuleManager.antinukeenable.callback
+
+
+def _disable_cmd():
+    return ModuleManager.antinukedisable.callback
+
+
+def _mode_cmd():
+    return ModuleManager.antinukemode.callback
+
+
+@pytest.mark.asyncio
+async def test_antinuke_enable_command_enables_and_acks(monkeypatch):
+    captured = {}
+
+    def fake_update(guild_id, updater):
+        cfg = {"anti_nuke": {"enabled": False, "mode": "monitor"}}
+        updater(cfg)
+        captured["guild_id"] = guild_id
+        captured["cfg"] = cfg
+
+    monkeypatch.setattr(mm, "update_guild_config", fake_update)
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _owner_allowed)
+
+    interaction = _FakeInteraction()
+    await _enable_cmd()(_cog(), interaction)
+
+    assert captured["guild_id"] == 123
+    assert captured["cfg"]["anti_nuke"]["enabled"] is True
+    assert interaction.response.sent
+    assert "enabled" in interaction.response.sent[0][0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_antinuke_disable_command_disables(monkeypatch):
+    captured = {}
+
+    def fake_update(guild_id, updater):
+        cfg = {"anti_nuke": {"enabled": True, "mode": "enforcement"}}
+        updater(cfg)
+        captured["cfg"] = cfg
+
+    monkeypatch.setattr(mm, "update_guild_config", fake_update)
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _owner_allowed)
+
+    interaction = _FakeInteraction()
+    await _disable_cmd()(_cog(), interaction)
+
+    assert captured["cfg"]["anti_nuke"]["enabled"] is False
+    assert interaction.response.sent
+
+
+@pytest.mark.asyncio
+async def test_antinuke_mode_command_sets_mode(monkeypatch):
+    captured = {}
+
+    def fake_update(guild_id, updater):
+        cfg = {"anti_nuke": {"enabled": True, "mode": "monitor"}}
+        updater(cfg)
+        captured["cfg"] = cfg
+
+    monkeypatch.setattr(mm, "update_guild_config", fake_update)
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _owner_allowed)
+
+    interaction = _FakeInteraction()
+    await _mode_cmd()(_cog(), interaction, "enforcement")
+
+    assert captured["cfg"]["anti_nuke"]["mode"] == "enforcement"
+    assert "enforcement" in interaction.response.sent[0][0][0]
+
+
+@pytest.mark.asyncio
+async def test_antinuke_mode_command_rejects_invalid_without_writing(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_update(guild_id, updater):
+        calls["n"] += 1
+
+    monkeypatch.setattr(mm, "update_guild_config", fake_update)
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _owner_allowed)
+
+    interaction = _FakeInteraction()
+    await _mode_cmd()(_cog(), interaction, "banana")
+
+    assert calls["n"] == 0
+    assert interaction.response.sent
+    assert "mode" in interaction.response.sent[0][0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_antinuke_enable_command_requires_owner(monkeypatch):
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _denied)
+    monkeypatch.setattr(mm, "update_guild_config", lambda *args, **kwargs: None)
+
+    interaction = _FakeInteraction()
+    await _enable_cmd()(_cog(), interaction)
+
+    assert interaction.response.sent
+    assert "permission" in interaction.response.sent[0][0][0].lower()
+    assert interaction.response.sent[0][1].get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_antinuke_enable_command_guild_only(monkeypatch):
+    monkeypatch.setattr(ModuleManager, "_can_manage_owner_settings", _owner_allowed)
+    monkeypatch.setattr(mm, "update_guild_config", lambda *args, **kwargs: None)
+
+    interaction = _FakeInteraction()
+    interaction.guild = None
+    await _enable_cmd()(_cog(), interaction)
+
+    assert interaction.response.sent
+    assert "server" in interaction.response.sent[0][0][0].lower()

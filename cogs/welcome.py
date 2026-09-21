@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from cogs.core.responses import response_engine
 from cogs.server_config import get_channel_id, get_guild_config, is_admin, update_guild_config
 
 
@@ -15,54 +16,96 @@ class WelcomeCog(commands.Cog):
     @app_commands.command(name="setupwelcome", description="Set the welcome channel.")
     async def setupwelcome(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to set the welcome channel."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         def updater(config):
             config.setdefault("channels", {})["welcome"] = channel.id
 
         update_guild_config(interaction.guild.id, updater)
-        await interaction.response.send_message(f"Welcome channel set to {channel.mention}.")
+        embed = response_engine.success(
+            title="Welcome Channel Set",
+            description=f"Welcome channel set to {channel.mention}."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="setupgoodbye", description="Set the goodbye channel.")
     async def setupgoodbye(self, interaction: discord.Interaction, channel: discord.TextChannel):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to set the goodbye channel."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         def updater(config):
             config.setdefault("channels", {})["goodbye"] = channel.id
 
         update_guild_config(interaction.guild.id, updater)
-        await interaction.response.send_message(f"Goodbye channel set to {channel.mention}.")
+        embed = response_engine.success(
+            title="Goodbye Channel Set",
+            description=f"Goodbye channel set to {channel.mention}."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="setwelcomegif", description="Set the welcome GIF/image URL for this server.")
     async def setwelcomegif(self, interaction: discord.Interaction, url: str):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to set the welcome GIF."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         url = url.strip()
         if not (url.startswith("http://") or url.startswith("https://")):
-            return await interaction.response.send_message("Provide a valid URL.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid URL",
+                description="Provide a valid URL."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         def updater(config):
             config["welcome_gif_url"] = url
 
         update_guild_config(interaction.guild.id, updater)
-        await interaction.response.send_message("Welcome GIF updated.", ephemeral=True)
+        embed = response_engine.success(
+            title="Welcome GIF Updated",
+            description="Welcome GIF updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="setgoodbyegif", description="Set the goodbye GIF/image URL for this server.")
     async def setgoodbyegif(self, interaction: discord.Interaction, url: str):
         if not is_admin(interaction.user):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to set the goodbye GIF."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         url = url.strip()
         if not (url.startswith("http://") or url.startswith("https://")):
-            return await interaction.response.send_message("Provide a valid URL.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid URL",
+                description="Provide a valid URL."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         def updater(config):
             config["goodbye_gif_url"] = url
 
         update_guild_config(interaction.guild.id, updater)
-        await interaction.response.send_message("Goodbye GIF updated.", ephemeral=True)
+        embed = response_engine.success(
+            title="Goodbye GIF Updated",
+            description="Goodbye GIF updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def send_visual_message(self, member: discord.Member, channel_key: str, is_join: bool):
         channel_id = get_channel_id(member.guild.id, channel_key)
@@ -91,7 +134,11 @@ class WelcomeCog(commands.Cog):
             cfg.get("welcome_gif_url") if is_join else cfg.get("goodbye_gif_url")
         ) or WELCOME_GIF
 
-        embed = discord.Embed(title=title, description=text, color=color)
+        embed = response_engine.build(
+            title=title,
+            description=text,
+            color=color
+        )
         embed.set_image(url=image_url)
         embed.set_thumbnail(url=member.display_avatar.url)
         embed.set_author(name=member.name, icon_url=member.display_avatar.url)

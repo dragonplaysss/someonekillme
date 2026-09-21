@@ -3,24 +3,25 @@ MINECRAFT_GUILD_ID = 1459184432954212477
 ROBLOX_AUTH_GUILD_ID = 1528882609042755584
 MODULE_STATES = {"active", "hidden", "disabled", "debug"}
 
+RETIRED_MODULES = {
+    "applications",
+    "ff",
+    "divisions",
+    "tickets",
+    "vibe",
+    "minecraft",
+}
+
 COMMAND_ALIASES = {
     "commands": "shorehelp",
     "cmds": "shorehelp",
+    "help": "shorehelp",
     "sync": "resync",
-    "flags": "ffcheck",
-    "joindiv": "joindivision",
-    "leavediv": "leavedivision",
-    "transcript": "transcripttk",
-    "close": "closeticket",
-    "deltk": "deletetk",
-    "addtk": "addtoticket",
-    "remtk": "removefromticket",
     "timeout": "mute",
     "clean": "purge",
+    "clear": "purge",
     "addrole": "giverole",
     "remrole": "removerole",
-    "lockdown": "seal",
-    "unlock": "unseal",
     "av": "avatar",
     "server": "serverinfo",
     "user": "userinfo",
@@ -48,42 +49,51 @@ MODULES = {
             "serveradmins",
             "snipeconfig",
         ],
-        "mention": ["health", "module", "update", "resync", "shorehelp", "ping", "whoami", "config", "showconfig", "verifyconfig"],
+        "mention": [
+            "health",
+            "module",
+            "update",
+            "resync",
+            "shorehelp",
+            "ping",
+            "whoami",
+            "config",
+            "showconfig",
+            "verifyconfig",
+            "guild",
+            "activateguild",
+            "deactivateguild",
+            "guildstatus",
+            "lockdown",
+        ],
     },
     "applications": {
-        "extension": "cogs.applications",
+        "extension": None,
         "slash": [],
-        "mention": ["application"],
+        "mention": [],
         "default_state": "disabled",
+        "retired": True,
     },
     "ff": {
-        "extension": "cogs.ff_checker",
+        "extension": None,
         "slash": [],
-        "mention": ["ffcheck", "ff"],
+        "mention": [],
         "default_state": "disabled",
+        "retired": True,
     },
     "divisions": {
-        "extension": "cogs.divisions",
-        "slash": [
-            "setupdivisions",
-            "removedivision",
-            "setupdivisionregistry",
-            "setdivisionrequestchannel",
-            "diviupdatewbh",
-            "divupdatewbh",
-            "setdivisionbanner",
-            "setdivisioncrest",
-            "setmainerrole",
-            "enablejoindivisions",
-            "disablejoindivisions",
-            "equalizedivisions",
-        ],
-        "mention": ["joindivision", "leavedivision"],
+        "extension": None,
+        "slash": [],
+        "mention": [],
+        "default_state": "disabled",
+        "retired": True,
     },
     "tickets": {
-        "extensions": ["cogs.tickets", "cogs.ticket_member_tools"],
-        "slash": ["ticketpanel"],
-        "mention": ["transcripttk", "closeticket", "deletetk", "addtoticket", "removefromticket"],
+        "extensions": [],
+        "slash": [],
+        "mention": [],
+        "default_state": "disabled",
+        "retired": True,
     },
     "welcome": {
         "extension": "cogs.welcome",
@@ -102,6 +112,7 @@ MODULES = {
             "cogs.moderation.nicklock",
             "cogs.moderation.role_tools",
             "cogs.moderation.seal",
+            "cogs.moderation.automod",
         ],
         "slash": ["modpanel"],
         "mention": [
@@ -123,6 +134,11 @@ MODULES = {
             "removerole",
             "seal",
             "unseal",
+            "lock",
+            "unlock",
+            "slowmode",
+            "case",
+            "cases",
         ],
     },
     "roles": {
@@ -156,20 +172,29 @@ MODULES = {
         ],
     },
     "vibe": {
-        "extension": "cogs.vibe",
+        "extension": None,
         "slash": [],
-        "mention": ["vibe", "ghost"],
+        "mention": [],
+        "default_state": "disabled",
+        "retired": True,
     },
     "logger": {
         "extension": "cogs.logger",
         "slash": [],
-        "mention": [],
+        "mention": ["logs"],
+    },
+    "anti_nuke": {
+        "extension": "cogs.anti_nuke",
+        "slash": [],
+        "mention": ["antinuke"],
+        "default_state": "disabled",
     },
     "minecraft": {
-        "extension": "cogs.minecraft_bridge",
-        "slash": ["mc", "mcsetup", "mcverify", "unlinkmc", "mclinkinfo"],
+        "extension": None,
+        "slash": [],
         "mention": [],
-        "default_state": "active",
+        "default_state": "disabled",
+        "retired": True,
         "guild_ids": [MINECRAFT_GUILD_ID],
     },
     "roblox_auth": {
@@ -187,7 +212,7 @@ MODULES = {
             "activeapprovals",
             "rbxauthguild",
         ],
-        "mention": ["robloxauth"],
+        "mention": ["robloxauth", "rbxrequest", "approveauth"],
         "default_state": "active",
     },
     "roblox_snipe": {
@@ -224,10 +249,17 @@ def normalize_state(state):
     return lowered
 
 
+def is_retired_module(module):
+    meta = MODULES.get(module, {})
+    return bool(meta.get("retired")) or module in RETIRED_MODULES
+
+
 def get_module_state(guild_config, module):
     if module == CORE_MODULE:
         return "active"
-    states = guild_config.get("modules", {})
+    if is_retired_module(module):
+        return "disabled"
+    states = (guild_config or {}).get("modules", {})
     if module in states:
         return normalize_state(states.get(module))
     meta = MODULES.get(module, {})
@@ -242,7 +274,9 @@ def set_module_state(guild_config, module, state):
 
 def all_extensions():
     seen = []
-    for meta in MODULES.values():
+    for module, meta in MODULES.items():
+        if is_retired_module(module):
+            continue
         extensions = meta.get("extensions") or [meta.get("extension")]
         for extension in extensions:
             if extension and extension not in seen:
@@ -325,9 +359,15 @@ def mention_command_list(command_names):
 
 
 def visible_slash_commands(guild_config, guild_id=None):
+    from cogs.core.permissions import guild_enabled
+
     visible = {CORE_MODULE}
+    if not guild_enabled(guild_config):
+        return visible
     for module, meta in MODULES.items():
         if module == CORE_MODULE:
+            continue
+        if is_retired_module(module):
             continue
         if not module_allowed_in_guild(module, guild_id):
             continue

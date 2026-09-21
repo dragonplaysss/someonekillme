@@ -21,7 +21,7 @@
             ],
             "unverified_role": 1470921704346747083,
             "skip_role": null,
-            "sealed_role": 1489389509077499954,
+            "sealed_role": 1550215967022260224,
             "channels": {
                 "blacklist": 1488567438177075384,
                 "logging": 1488566474237808721,
@@ -29,7 +29,8 @@
                 "welcome": null,
                 "goodbye": null,
                 "tickets": null,
-                "mod_logs": null
+                "mod_logs": 1489357780384223273,
+                "dashboard": null
             },
             "owner_ids": [
                 708390973712891976
@@ -38,7 +39,10 @@
             "ticket_ping_roles": [],
             "welcome_gif_url": null,
             "goodbye_gif_url": null,
-            "modules": {},
+            "modules": {
+                "anti_nuke": "active",
+                "roblox_snipe": "active"
+            },
             "minecraft": {
                 "enabled": true,
                 "screen_name": "minecraft",
@@ -54,7 +58,42 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
-            "ff_blocked": []
+            "ff_blocked": [],
+            "enabled": true,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": true,
+                "mode": "enforcement",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
         },
         "1501290144152682506": {
             "admin_roles": [
@@ -97,7 +136,8 @@
                 "welcome": null,
                 "goodbye": null,
                 "tickets": null,
-                "mod_logs": null
+                "mod_logs": null,
+                "dashboard": null
             },
             "owner_ids": [
                 708390973712891976
@@ -122,7 +162,42 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
-            "ff_blocked": []
+            "ff_blocked": [],
+            "enabled": false,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
         },
         "1459184432954212477": {
             "owner_ids": [
@@ -146,7 +221,8 @@
                 "welcome": 1467464009036070942,
                 "goodbye": 1467464009036070942,
                 "tickets": null,
-                "mod_logs": null
+                "mod_logs": null,
+                "dashboard": null
             },
             "modules": {
                 "minecraft": "active",
@@ -167,7 +243,42 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
-            "ff_blocked": []
+            "ff_blocked": [],
+            "enabled": false,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
         },
         "1508415166663098488": {
             "owner_ids": [
@@ -191,7 +302,8 @@
                 "welcome": null,
                 "goodbye": null,
                 "tickets": null,
-                "mod_logs": null
+                "mod_logs": null,
+                "dashboard": null
             },
             "modules": {},
             "minecraft": {
@@ -209,7 +321,42 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
-            "ff_blocked": []
+            "ff_blocked": [],
+            "enabled": false,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
         },
         "1513930561650032650": {
             "owner_ids": [
@@ -233,7 +380,8 @@
                 "welcome": null,
                 "goodbye": null,
                 "tickets": null,
-                "mod_logs": null
+                "mod_logs": null,
+                "dashboard": null
             },
             "modules": {},
             "minecraft": {
@@ -251,7 +399,42 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
-            "ff_blocked": []
+            "ff_blocked": [],
+            "enabled": false,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
         },
         "1528882609042755584": {
             "owner_ids": [
@@ -275,7 +458,8 @@
                 "welcome": null,
                 "goodbye": null,
                 "tickets": null,
-                "mod_logs": 1528882609776496762
+                "mod_logs": 1528882609776496762,
+                "dashboard": null
             },
             "modules": {
                 "roblox_auth": "active",
@@ -296,7 +480,123 @@
             },
             "ff_allowed": [],
             "ff_warning": [],
+            "ff_blocked": [],
+            "enabled": false,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            }
+        },
+        "1535254001170518109": {
+            "enabled": false,
+            "admin_ids": [],
+            "admin_roles": [],
+            "mod_roles": [],
+            "verify_staff_roles": [],
+            "verified_roles": [],
+            "ticket_ping_roles": [],
+            "welcome_gif_url": null,
+            "goodbye_gif_url": null,
+            "unverified_role": null,
+            "skip_role": null,
+            "sealed_role": null,
+            "immunity_role": null,
+            "snipe_role": null,
+            "snipe_cooldown_seconds": 20,
+            "channels": {
+                "blacklist": null,
+                "logging": null,
+                "track": null,
+                "welcome": null,
+                "goodbye": null,
+                "tickets": null,
+                "mod_logs": null,
+                "dashboard": null
+            },
+            "modules": {},
+            "anti_nuke": {
+                "enabled": false,
+                "mode": "monitor",
+                "bot_add_punishment": "kick",
+                "trigger_lockdown_on_bot_add": false,
+                "trigger_lockdown_on_mass_action": false,
+                "window_seconds": 20,
+                "cooldown_seconds": 60,
+                "trusted_user_ids": [],
+                "trusted_role_ids": [],
+                "trusted_bot_ids": [],
+                "thresholds": {
+                    "ban": 5,
+                    "kick": 5,
+                    "channel_delete": 3,
+                    "channel_create": 5,
+                    "role_delete": 3,
+                    "role_create": 5,
+                    "webhook": 4,
+                    "guild_update": 3,
+                    "role_update": 3,
+                    "raid_join": 8
+                }
+            },
+            "lockdown": {
+                "enabled": false,
+                "activated_by": null,
+                "activated_at": null,
+                "channel_ids": [],
+                "saved_overwrites": {}
+            },
+            "minecraft": {
+                "enabled": true,
+                "screen_name": "minecraft",
+                "chat_channel": null,
+                "chat_channel_id": null,
+                "console_channel": null,
+                "console_channel_id": null,
+                "server_directory": "/home/ubuntu/minecraft",
+                "start_command": "java -Xms2G -Xmx4G -jar server.jar nogui",
+                "links": {},
+                "pending_verifications": {},
+                "verified_minecraft_role": null
+            },
+            "ff_allowed": [],
+            "ff_warning": [],
             "ff_blocked": []
         }
+    },
+    "roblox_auth": {
+        "authorized_guild_ids": [
+            1528882609042755584,
+            1489351990705131571
+        ]
     }
 }

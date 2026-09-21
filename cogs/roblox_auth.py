@@ -5,7 +5,7 @@ import re
 import traceback
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import aiohttp
@@ -27,7 +27,9 @@ from cogs.server_config import (
     is_roblox_auth_guild_authorized,
     revoke_roblox_auth_guild,
 )
+from cogs.shorekeeper_responses import ShorekeeperResponses
 from cogs.trigger_parser import parse_shorekeeper_trigger
+from cogs.core.responses import response_engine
 
 
 DEFAULT_APPROVAL_MINUTES = 10
@@ -93,6 +95,23 @@ def _parse_duration(value: Optional[str]) -> timedelta:
 class AuthCode:
     code: str
     remaining: int
+
+
+@dataclass
+class DeliveryResult:
+    delivered: bool
+    reason: Optional[str] = None
+    password_included: bool = False
+
+    @property
+    def success(self) -> bool:
+        return self.delivered
+
+
+@dataclass
+class ApprovalDeliveryResult:
+    delivered: bool
+    reason: Optional[str] = None
 
 
 class RobloxAuthRefreshView(discord.ui.View):
@@ -221,6 +240,109 @@ class RobloxAuthCog(commands.Cog):
             return Fernet(raw_key.encode("utf-8"))
         except (ValueError, TypeError) as exc:
             raise RuntimeError("TOTP_SECRET_KEY must be a valid Fernet key.") from exc
+
+    async def approve_account_request(self, account, requester_id, moderator_id, duration):
+        now = _utcnow()
+        expires_at = now + duration
+        await self.approvals.find_one_and_update(
+            {"username_key": account["username_key"], "active": True},
+            {"$set": {
+                "discord_user": requester_id,
+                "roblox_username": account["username"],
+                "username_key": account["username_key"],
+                "approved_by": moderator_id,
+                "approved_at": now,
+                "expires_at": expires_at,
+                "active": True,
+            }},
+            upsert=True
+        )
+        return {
+            "discord_user": requester_id,
+            "roblox_username": account["username"],
+            "username_key": account["username_key"],
+            "approved_by": moderator_id,
+            "approved_at": now,
+            "expires_at": expires_at,
+            "active": True,
+        }
+
+    async def deliver_approval_credentials(self, discord_user_id, requester, account, approval_filter):
+        # Get approval for this user and account
+        approval = await self.get_active_approval(discord_user_id, account["username"])
+        if not approval:
+            return ApprovalDeliveryResult(delivered=False, reason="no_approval")
+        # Generate code
+        auth_code = await self.generate_code(account)
+        approval_remaining = self.approval_remaining_seconds(approval)
+        # Decrypt password if present
+        password_included = False
+        password = None
+        encrypted_password = account.get("password")
+        if encrypted_password:
+            try:
+                password = self.decrypt_password(encrypted_password)
+            except InvalidToken:
+                await self.log_event(
+                    None,
+                    "Internal Error",
+                    {
+                        "exception_type": "InvalidToken",
+                        "roblox_username": account["username"],
+                        "discord_user": discord_user_id,
+                        "operation": "Decrypt stored password",
+                    },
+                )
+            else:
+                password_included = True
+        # Build embed
+        embed = self.build_dm_embed(
+            account_name=account.get("display_name") or account["username"],
+            code=auth_code.code,
+            status="ACTIVE",
+            approval_remaining=approval_remaining,
+            code_remaining=auth_code.remaining,
+            requested_by=requester,
+            username=account["username"],
+            password=password,
+        )
+        try:
+            await requester.send(embed=embed)
+            result = ApprovalDeliveryResult(delivered=True, reason=None)
+            await self.log_event(
+                None,
+                "Auth Requested",
+                {
+                    "discord_user": discord_user_id,
+                    "roblox_username": account["username"],
+                    "result": "dm_sent",
+                    "password_included": "Yes" if password_included else "No",
+                },
+            )
+        except discord.Forbidden:
+            result = ApprovalDeliveryResult(delivered=False, reason="dm_forbidden")
+            await self.log_event(
+                None,
+                "DM Failed",
+                {
+                    "discord_user": discord_user_id,
+                    "roblox_username": account["username"],
+                },
+            )
+        except Exception as exc:
+            result = ApprovalDeliveryResult(delivered=False, reason="failed")
+            await self.log_event(
+                None,
+                "Auth Requested",
+                {
+                    "discord_user": discord_user_id,
+                    "roblox_username": account["username"],
+                    "result": "failed",
+                    "error": type(exc).__name__,
+                    "password_included": "Yes" if password_included else "No",
+                },
+            )
+        return result
 
     def guild_allowed(self, guild: Optional[discord.Guild]) -> bool:
         return bool(guild and is_roblox_auth_guild_authorized(guild.id))
@@ -369,7 +491,15 @@ class RobloxAuthCog(commands.Cog):
         password: Optional[str] = None,
     ) -> discord.Embed:
         status_label = "Active" if status == "ACTIVE" else "Approval Expired"
-        embed = discord.Embed(title="\U0001f510 Roblox Authentication", color=0x57F287 if status == "ACTIVE" else 0xED4245)
+        # Use Shorekeeper-themed embed with appropriate color
+        kind = "success" if status == "ACTIVE" else "error"
+        embed = ShorekeeperResponses.create_embed(
+            title="\U0001f510 Roblox Authentication",
+            description="",
+            kind=kind
+        )
+        # Override the description if needed (create_embed sets it to empty string)
+        # Add all the required fields
         embed.add_field(name="\U0001f3ae Roblox Account", value=account_name, inline=False)
         if username:
             embed.add_field(name="\U0001f464 Username", value=username, inline=False)
@@ -509,7 +639,7 @@ class RobloxAuthCog(commands.Cog):
                 self._add_log_field(embed, key.replace("_", " ").title(), self._format_log_value(key, value), True)
 
         self._add_log_field(embed, "\U0001f552 Timestamp", _discord_timestamp(style="R"), False)
-        embed.set_footer(text="Shorekeeper Roblox Authentication")
+        embed.set_footer(text=response_engine.footer)
         return embed
 
     async def log_event(self, guild: Optional[discord.Guild], action: str, detail: str):
@@ -760,10 +890,82 @@ class RobloxAuthCog(commands.Cog):
                 "active": True,
             }
         )
-        await interaction.response.send_message(
-            f"{discord_user.mention} approved for `{account['username']}` for {_format_seconds(int(approval_duration.total_seconds()))}.",
-            ephemeral=True,
-        )
+
+        # Generate code and attempt to send via DM to the target user
+        try:
+            auth_code = await self.generate_code(account)
+            approval_remaining = self.approval_remaining_seconds(
+                {"expires_at": expires_at}
+            )
+            # Decrypt password if present
+            password = None
+            encrypted_password = account.get("password")
+            if encrypted_password:
+                try:
+                    password = self.decrypt_password(encrypted_password)
+                except InvalidToken:
+                    pass  # Leave password as None
+
+            embed = self.build_dm_embed(
+                account_name=account.get("display_name") or account["username"],
+                code=auth_code.code,
+                status="ACTIVE",
+                approval_remaining=approval_remaining,
+                code_remaining=auth_code.remaining,
+                requested_by=interaction.user,
+                username=account["username"],
+                password=password,
+            )
+            view = RobloxAuthRefreshView(
+                self, interaction.guild.id, discord_user.id, account["username_key"], account["username"]
+            )
+            await discord_user.send(embed=embed, view=view)
+            dm_result = "dm_sent"
+            await self.log_event(
+                interaction.guild,
+                "Auth Requested",
+                {
+                    "discord_user": discord_user.id,
+                    "roblox_username": account["username"],
+                    "result": "dm_sent",
+                    "password_included": "Yes" if encrypted_password else "No",
+                },
+            )
+            await interaction.response.send_message(
+                f"{discord_user.mention} approved for `{account['username']}` for {_format_seconds(int(approval_duration.total_seconds()))}. The authenticator code has been sent via DM.",
+                ephemeral=True,
+            )
+        except discord.Forbidden:
+            await self.log_event(
+                interaction.guild,
+                "DM Failed",
+                {
+                    "discord_user": discord_user.id,
+                    "roblox_username": account["username"],
+                },
+            )
+            await interaction.response.send_message(
+                f"{discord_user.mention} approved for `{account['username']}` for {_format_seconds(int(approval_duration.total_seconds()))}. However, I could not DM them the authenticator code. Please ask them to enable DMs and then use `@Shorekeeper robloxauth {account['username']}` to request the code.",
+                ephemeral=True,
+            )
+        except Exception as exc:
+            await self.log_event(
+                interaction.guild,
+                "Auth Requested",
+                {
+                    "discord_user": discord_user.id,
+                    "roblox_username": account["username"],
+                    "result": "failed",
+                    "error": type(exc).__name__,
+                    "password_included": "Yes" if encrypted_password else "No",
+                },
+            )
+            await interaction.response.send_message(
+                f"{discord_user.mention} approved for `{account['username']}` for {_format_seconds(int(approval_duration.total_seconds()))}. Failed to send authenticator code via DM. Please check logs.",
+                ephemeral=True,
+            )
+
+        # Log the approval granted event
         await self.log_event(
             interaction.guild,
             "Approval Granted",
@@ -830,90 +1032,240 @@ class RobloxAuthCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         trigger = parse_shorekeeper_trigger(self.bot, message)
-        if not trigger or trigger["keyword"] != "robloxauth":
-            return
-        if not self.guild_allowed(message.guild):
-            return await message.channel.send("Roblox Auth is not authorized in this server.", delete_after=8)
-
-        username = " ".join(trigger["args"]).strip()
-        if not username:
-            return await message.channel.send("Use `@Shorekeeper robloxauth RobloxUsername`.", delete_after=8)
-
-        account = await self.get_account(username)
-        approval = await self.get_active_approval(message.author.id, username)
-        if not approval or not account:
-            await self.log_event(
-                message.guild,
-                "Unauthorized Attempt",
-                f"discord_user={message.author.id} roblox_username={username}",
-            )
+        if not trigger:
             return
 
-        password_included = False
-        try:
-            auth_code = await self.generate_code(account)
-            approval_remaining = self.approval_remaining_seconds(approval)
-            password = None
-            encrypted_password = account.get("password")
-            if encrypted_password:
-                try:
-                    password = self.decrypt_password(encrypted_password)
-                except InvalidToken:
-                    traceback.print_exc()
-                    await self.log_event(
-                        message.guild,
-                        "Internal Error",
-                        {
-                            "exception_type": "InvalidToken",
-                            "roblox_username": account["username"],
-                            "discord_user": message.author.id,
-                            "operation": "Decrypt stored password",
-                        },
+        keyword = trigger["keyword"]
+
+        # Handle robloxauth mention command - get authenticator code
+        if keyword == "robloxauth":
+            if not self.guild_allowed(message.guild):
+                return await message.channel.send("Roblox Auth is not authorized in this server.", delete_after=8)
+
+            username = " ".join(trigger["args"]).strip()
+            if not username:
+                return await message.channel.send("Use `@Shorekeeper robloxauth RobloxUsername`.", delete_after=8)
+
+            account = await self.get_account(username)
+            approval = await self.get_active_approval(message.author.id, username)
+            if not approval or not account:
+                await self.log_event(
+                    message.guild,
+                    "Unauthorized Attempt",
+                    f"discord_user={message.author.id} roblox_username={username}",
+                )
+                return
+
+            password_included = False
+            try:
+                auth_code = await self.generate_code(account)
+                approval_remaining = self.approval_remaining_seconds(approval)
+                password = None
+                encrypted_password = account.get("password")
+                if encrypted_password:
+                    try:
+                        password = self.decrypt_password(encrypted_password)
+                    except InvalidToken:
+                        traceback.print_exc()
+                        await self.log_event(
+                            message.guild,
+                            "Internal Error",
+                            {
+                                "exception_type": "InvalidToken",
+                                "roblox_username": account["username"],
+                                "discord_user": message.author.id,
+                                "operation": "Decrypt stored password",
+                            },
+                        )
+                password_included = password is not None
+                embed = self.build_dm_embed(
+                    account_name=account.get("display_name") or account["username"],
+                    code=auth_code.code,
+                    status="ACTIVE",
+                    approval_remaining=approval_remaining,
+                    code_remaining=auth_code.remaining,
+                    requested_by=message.author,
+                    username=account["username"],
+                    password=password,
+                )
+                view = RobloxAuthRefreshView(self, message.guild.id, message.author.id, account["username_key"], account["username"])
+                await message.author.send(embed=embed, view=view)
+                await message.add_reaction("\u2705")
+                await self.log_event(
+                    message.guild,
+                    "Auth Requested",
+                    {
+                        "discord_user": message.author.id,
+                        "roblox_username": account["username"],
+                        "result": "dm_sent",
+                        "password_included": "Yes" if password_included else "No",
+                    },
+                )
+            except discord.Forbidden:
+                await self.log_event(
+                    message.guild,
+                    "DM Failed",
+                    f"discord_user={message.author.id} roblox_username={username}",
+                )
+                await message.channel.send("I could not DM you. Enable DMs and try again.", delete_after=10)
+            except Exception as exc:
+                await self.log_event(
+                    message.guild,
+                    "Auth Requested",
+                    {
+                        "discord_user": message.author.id,
+                        "roblox_username": username,
+                        "result": "failed",
+                        "error": type(exc).__name__,
+                        "password_included": "Yes" if password_included else "No",
+                    },
+                )
+                await message.channel.send("Authenticator request failed. Ask staff to check logs.", delete_after=10)
+
+        # Handle rbxrequest mention command - request approval to use an account
+        elif keyword == "rbxrequest":
+            if not self.guild_allowed(message.guild):
+                return await message.channel.send("Roblox Auth is not authorized in this server.", delete_after=8)
+
+            username = " ".join(trigger["args"]).strip()
+            if not username:
+                return await message.channel.send("Use `@Shorekeeper rbxrequest RobloxUsername` to request approval for an account.", delete_after=8)
+
+            account = await self.get_account(username)
+            if not account:
+                return await message.channel.send(f"Account `{username}` not found or inactive.", delete_after=8)
+
+            # Check if user already has an active approval
+            existing_approval = await self.get_active_approval(message.author.id, username)
+            if existing_approval:
+                return await message.channel.send(f"You are already approved to use `{username}`.", delete_after=8)
+
+            # Notify managers about the request
+            try:
+                mod_logs_channel_id = get_channel_id(message.guild.id, "mod_logs") or get_channel_id(message.guild.id, "logging")
+                channel = message.guild.get_channel(mod_logs_channel_id) if mod_logs_channel_id else None
+
+                if channel:
+                    embed = discord.Embed(
+                        title="Roblox Auth Approval Request",
+                        color=0x5865F2,
+                        timestamp=datetime.now(timezone.utc)
                     )
-            password_included = password is not None
-            embed = self.build_dm_embed(
-                account_name=account.get("display_name") or account["username"],
-                code=auth_code.code,
-                status="ACTIVE",
-                approval_remaining=approval_remaining,
-                code_remaining=auth_code.remaining,
-                requested_by=message.author,
-                username=account["username"],
-                password=password,
-            )
-            view = RobloxAuthRefreshView(self, message.guild.id, message.author.id, account["username_key"], account["username"])
-            await message.author.send(embed=embed, view=view)
-            await message.add_reaction("\u2705")
-            await self.log_event(
-                message.guild,
-                "Auth Requested",
-                {
-                    "discord_user": message.author.id,
-                    "roblox_username": account["username"],
-                    "result": "dm_sent",
-                    "password_included": "Yes" if password_included else "No",
-                },
-            )
-        except discord.Forbidden:
-            await self.log_event(
-                message.guild,
-                "DM Failed",
-                f"discord_user={message.author.id} roblox_username={username}",
-            )
-            await message.channel.send("I could not DM you. Enable DMs and try again.", delete_after=10)
-        except Exception as exc:
-            await self.log_event(
-                message.guild,
-                "Auth Requested",
-                {
-                    "discord_user": message.author.id,
-                    "roblox_username": username,
-                    "result": "failed",
-                    "error": type(exc).__name__,
-                    "password_included": "Yes" if password_included else "No",
-                },
-            )
-            await message.channel.send("Authenticator request failed. Ask staff to check logs.", delete_after=10)
+                    embed.add_field(name="User", value=f"{message.author.mention} ({message.author.id})", inline=True)
+                    embed.add_field(name="Roblox Username", value=account["username"], inline=True)
+                    embed.add_field(name="Display Name", value=account.get("display_name") or "Not set", inline=True)
+                    embed.add_field(name="Requested At", value=f"<t:{int(datetime.now(timezone.utc).timestamp())}:R>", inline=False)
+
+                    await channel.send(embed=embed)
+                    await message.channel.send(f"Your request to use `{username}` has been submitted to managers for approval.", delete_after=15)
+                else:
+                    await message.channel.send("Could not find mod logs or logging channel to send request notification. Please contact an administrator directly.", delete_after=15)
+
+            except Exception as exc:
+                await self.log_event(
+                    message.guild,
+                    "Request Notification Failed",
+                    {
+                        "discord_user": message.author.id,
+                        "roblox_username": username,
+                        "error": type(exc).__name__,
+                    },
+                )
+                await message.channel.send("Failed to send request notification. Please try again later or contact managers directly.", delete_after=15)
+
+        # Handle approveauth mention command - approve a user's request
+        elif keyword == "approveauth":
+            if not self.guild_allowed(message.guild):
+                return await message.channel.send("Roblox Auth is not authorized in this server.", delete_after=8)
+
+            # Check if message author is a manager
+            if not isinstance(message.author, discord.Member) or not self.manager_allowed(message.author):
+                return await message.channel.send("You do not have permission to approve Roblox Auth requests.", delete_after=8)
+
+            # Parse arguments: should be @user username
+            args = trigger["args"]
+            if len(args) < 2:
+                return await message.channel.send("Use `@Shorekeeper approveauth @User RobloxUsername` to approve a user's request.", delete_after=8)
+
+            # First argument should be a user mention
+            user_arg = args[0]
+            if not (user_arg.startswith("<@") and user_arg.endswith(">")):
+                return await message.channel.send("First argument must be a user mention (e.g. @Username).", delete_after=8)
+
+            # Extract user ID from mention
+            try:
+                if user_arg.startswith("<@!"):
+                    target_user_id = int(user_arg[3:-1])
+                else:
+                    target_user_id = int(user_arg[2:-1])
+            except ValueError:
+                return await message.channel.send("Invalid user mention format.", delete_after=8)
+
+            # Get the target user
+            target_user = message.guild.get_member(target_user_id)
+            if not target_user:
+                return await message.channel.send("User not found in this server.", delete_after=8)
+
+            # Remaining arguments form the username
+            username = " ".join(args[1:]).strip()
+            if not username:
+                return await message.channel.send("Please specify a Roblox username.", delete_after=8)
+
+            account = await self.get_account(username)
+            if not account:
+                return await message.channel.send(f"Account `{username}` not found or inactive.", delete_after=8)
+
+            # Check if user already has an active approval
+            existing_approval = await self.get_active_approval(target_user_id, username)
+            if existing_approval:
+                return await message.channel.send(f"{target_user.mention} is already approved to use `{username}`.", delete_after=8)
+
+            # Create approval (default duration: 1 hour)
+            try:
+                now = _utcnow()
+                expires_at = now + timedelta(hours=1)  # Default 1 hour duration
+
+                await self.approvals.update_many(
+                    {"username_key": account["username_key"], "active": True},
+                    {"$set": {"active": False, "replaced_at": now}},
+                )
+                await self.approvals.insert_one(
+                    {
+                        "discord_user": target_user_id,
+                        "roblox_username": account["username"],
+                        "username_key": account["username_key"],
+                        "approved_by": message.author.id,
+                        "approved_at": now,
+                        "expires_at": expires_at,
+                        "active": True,
+                    }
+                )
+
+                await message.channel.send(f"{target_user.mention} has been approved to use `{username}` for 1 hour.", delete_after=15)
+                await self.log_event(
+                    message.guild,
+                    "Approval Granted",
+                    f"discord_user={target_user_id} roblox_username={account['username']} approved_by={message.author.id}",
+                )
+
+                # Notify the user that they've been approved
+                try:
+                    await target_user.send(f"You have been approved to use the Roblox account `{username}` by {message.author.mention}. You can now request authenticator codes using `@Shorekeeper robloxauth {username}`.")
+                except discord.Forbidden:
+                    pass  # User has DMs disabled, continue anyway
+
+            except Exception as exc:
+                await self.log_event(
+                    message.guild,
+                    "Approval Failed",
+                    {
+                        "discord_user": target_user_id,
+                        "roblox_username": username,
+                        "approved_by": message.author.id,
+                        "error": type(exc).__name__,
+                    },
+                )
+                await message.channel.send("Failed to grant approval. Please try again later.", delete_after=15)
 
 
 async def setup(bot):

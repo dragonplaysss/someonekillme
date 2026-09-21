@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from cogs.core.responses import response_engine
 from cogs.mod_config import get_mod_guild_config, update_mod_guild_config
 from cogs.module_registry import get_module_state, set_module_state
 from cogs.server_config import (
@@ -61,13 +62,24 @@ class PanelBaseView(discord.ui.View):
 
     async def can_use(self, interaction: discord.Interaction, owner_only: bool = False):
         if interaction.user.id != self.author_id and not is_panel_owner(interaction.user.id):
-            await interaction.response.send_message("This panel belongs to another user.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Panel Access Denied",
+                description="This panel belongs to another user."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         if owner_only and not is_panel_owner(interaction.user.id):
-            await interaction.response.send_message("Only the Panel Owner can use that control.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Insufficient Permissions",
+                description="Only the Panel Owner can use that control."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         if not owner_only and not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to use the moderation panel."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         return True
 
@@ -160,7 +172,11 @@ class ConfigButton(discord.ui.Button):
         if self.action == "owner_guilds":
             ids = get_authorized_roblox_auth_guild_ids()
             lines = [f"- `{gid}` {view.bot.get_guild(gid).name if view.bot.get_guild(gid) else ''}" for gid in ids]
-            return await interaction.response.send_message("\n".join(lines) or "No Roblox Auth guilds authorized.", ephemeral=True)
+            embed = response_engine.info(
+                title="Authorized Roblox Auth Guilds",
+                description="\n".join(lines) or "No Roblox Auth guilds authorized."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class BackButton(discord.ui.Button):
@@ -171,7 +187,8 @@ class BackButton(discord.ui.Button):
         view: CategoryView = self.view
         if not await view.can_use(interaction):
             return
-        await interaction.response.edit_message(embed=build_home_embed(interaction.guild), view=ModPanelView(view.bot, view.author_id))
+        embed = build_home_embed(interaction.guild)
+        await interaction.response.edit_message(embed=embed, view=ModPanelView(view.bot, view.author_id))
 
 
 class RoleConfigModal(discord.ui.Modal):
@@ -187,11 +204,20 @@ class RoleConfigModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify roles."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         try:
             role_id = int(self.role_id.value.strip())
         except ValueError:
-            return await interaction.response.send_message("Role ID must be numeric.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Role ID",
+                description="Role ID must be numeric."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         role_type = self.role_type.value.strip().lower()
 
         def updater(config):
@@ -209,8 +235,17 @@ class RoleConfigModal(discord.ui.Modal):
         try:
             update_guild_config(interaction.guild.id, updater)
         except ValueError as exc:
-            return await interaction.response.send_message(str(exc), ephemeral=True)
-        await interaction.response.send_message("Role setting saved.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Role Type",
+                description=str(exc)
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+        embed = response_engine.success(
+            title="Role Setting Saved",
+            description="The role setting has been successfully updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class ChannelConfigModal(discord.ui.Modal, title="Set Channel"):
@@ -222,16 +257,34 @@ class ChannelConfigModal(discord.ui.Modal, title="Set Channel"):
 
     async def on_submit(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify channels."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         key = CHANNEL_KEYS.get(self.channel_type.value.strip().lower())
         if not key:
-            return await interaction.response.send_message("Invalid channel type.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Channel Type",
+                description="The specified channel type is not recognized."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         try:
             channel_id = int(self.channel_id.value.strip())
         except ValueError:
-            return await interaction.response.send_message("Channel ID must be numeric.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Channel ID",
+                description="Channel ID must be numeric."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         update_guild_config(interaction.guild.id, lambda config: config.setdefault("channels", {}).update({key: channel_id}))
-        await interaction.response.send_message("Channel saved.", ephemeral=True)
+        embed = response_engine.success(
+            title="Channel Saved",
+            description="The channel setting has been successfully updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class RobloxManagerRoleModal(discord.ui.Modal, title="Set Roblox Auth Manager Role"):
@@ -239,13 +292,26 @@ class RobloxManagerRoleModal(discord.ui.Modal, title="Set Roblox Auth Manager Ro
 
     async def on_submit(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify the Roblox Auth manager role."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         try:
             role_id = int(self.role_id.value.strip())
         except ValueError:
-            return await interaction.response.send_message("Role ID must be numeric.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Role ID",
+                description="Role ID must be numeric."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         update_mod_guild_config(interaction.guild.id, lambda config: config.update({"account_manager_role": role_id}))
-        await interaction.response.send_message("Roblox Auth manager role saved.", ephemeral=True)
+        embed = response_engine.success(
+            title="Roblox Auth Manager Role Saved",
+            description="The Roblox Auth manager role has been successfully updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class SnipeRoleModal(discord.ui.Modal, title="Set Roblox Snipe Role"):
@@ -253,13 +319,26 @@ class SnipeRoleModal(discord.ui.Modal, title="Set Roblox Snipe Role"):
 
     async def on_submit(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify the Roblox Snipe role."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         try:
             role_id = int(self.role_id.value.strip())
         except ValueError:
-            return await interaction.response.send_message("Role ID must be numeric.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Role ID",
+                description="Role ID must be numeric."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_role": role_id}))
-        await interaction.response.send_message("Roblox Snipe role saved.", ephemeral=True)
+        embed = response_engine.success(
+            title="Roblox Snipe Role Saved",
+            description="The Roblox Snipe role has been successfully updated."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class SnipeCooldownModal(discord.ui.Modal, title="Set Roblox Snipe Cooldown"):
@@ -267,21 +346,34 @@ class SnipeCooldownModal(discord.ui.Modal, title="Set Roblox Snipe Cooldown"):
 
     async def on_submit(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to modify the Roblox Snipe cooldown."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         try:
             value = max(5, min(300, int(self.seconds.value.strip())))
         except ValueError:
-            return await interaction.response.send_message("Cooldown must be a number.", ephemeral=True)
+            embed = response_engine.failure(
+                title="Invalid Cooldown Value",
+                description="Cooldown must be a number between 5 and 300 seconds."
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
         update_guild_config(interaction.guild.id, lambda config: config.update({"snipe_cooldown_seconds": value}))
-        await interaction.response.send_message(f"Roblox Snipe cooldown saved: `{value}s`.", ephemeral=True)
+        embed = response_engine.success(
+            title="Roblox Snipe Cooldown Saved",
+            description=f"Roblox Snipe cooldown saved: `{value}s`."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 def build_home_embed(guild: discord.Guild):
     cfg = get_guild_config(guild.id)
-    embed = discord.Embed(
+    embed = response_engine.build(
         title="Moderation Control Panel",
         description="Choose a category to view and configure existing server settings.",
-        color=discord.Color.red(),
+        color=0xED4245  # Red color for moderation
     )
     embed.add_field(name="Admin Roles", value=str(len(cfg.get("admin_roles", []))), inline=True)
     embed.add_field(name="Mod Roles", value=str(len(cfg.get("mod_roles", []))), inline=True)
@@ -292,7 +384,23 @@ def build_home_embed(guild: discord.Guild):
 def build_category_embed(guild: discord.Guild, category: str, bot):
     cfg = get_guild_config(guild.id)
     mod_cfg = get_mod_guild_config(guild.id)
-    embed = discord.Embed(title=f"{category.replace('_', ' ').title()} Settings", color=0x5865F2)
+    # Determine embed color based on category
+    color_map = {
+        "moderation": 0xED4245,  # Red
+        "roles": 0x57F287,       # Green
+        "channels": 0x5865F2,    # Blue
+        "roblox": 0xEB459E,      # Pink/Purple
+        "roblox_snipe": 0xEB459E,# Pink/Purple
+        "security": 0x2B2D42,    # Dark blue
+        "modules": 0xFEE75C,     # Yellow
+        "owner": 0x5865F2        # Blue
+    }
+    color = color_map.get(category, 0x5865F2)
+    embed = response_engine.build(
+        title=f"{category.replace('_', ' ').title()} Settings",
+        description="",
+        color=color
+    )
     if category == "moderation":
         embed.description = "Mention commands: ban, kick, mute, warn, purge, locknick, barklock, uwulock, seal."
         embed.add_field(name="Nicklock", value="Available", inline=True)
@@ -315,7 +423,11 @@ def build_category_embed(guild: discord.Guild, category: str, bot):
         embed.add_field(name="Roblox Snipe", value=get_module_state(cfg, "roblox_snipe").title(), inline=True)
         embed.add_field(name="Snipe Role", value=_role_label(guild, cfg.get("snipe_role")), inline=True)
         embed.add_field(name="Cooldown", value=f"{cfg.get('snipe_cooldown_seconds', 20)} seconds", inline=True)
-        embed.add_field(name="Authorized", value="Yes" if get_module_state(cfg, "roblox_snipe") in {"active", "debug"} else "No", inline=True)
+        embed.add_field(
+            name="Authorized",
+            value="Yes" if get_module_state(cfg, "roblox_snipe") in {"active", "debug"} else "No",
+            inline=True
+        )
         embed.add_field(
             name="Commands",
             value="`/snipe`, `/snipeconfig enabled`, `/snipeconfig role`, `/snipeconfig cooldown`, `@Shorekeeper snipe username`",
@@ -341,13 +453,19 @@ class ModerationPanel(commands.Cog):
 
     async def send_panel(self, destination, author):
         if not (is_panel_owner(author.id) or is_admin(author)):
-            return await destination.send("No permission.")
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to open the moderation panel."
+            )
+            return await destination.send(embed=embed)
         await destination.send(embed=build_home_embed(destination.guild), view=ModPanelView(self.bot, author.id))
 
     @app_commands.command(name="modpanel", description="Open the moderation configuration panel.")
     async def modpanel_slash(self, interaction: discord.Interaction):
         if not (is_panel_owner(interaction.user.id) or is_admin(interaction.user)):
-            return await interaction.response.send_message("No permission.", ephemeral=True)
+            embed = response_engine.permission_denied(
+                detail="You lack the necessary permissions to open the moderation panel."
+            )
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
         await interaction.response.send_message(embed=build_home_embed(interaction.guild), view=ModPanelView(self.bot, interaction.user.id), ephemeral=True)
 
     @commands.Cog.listener()

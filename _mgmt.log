@@ -1,0 +1,30 @@
+﻿[PASS] all extensions load []
+[PASS] administrator cannot disable guild embed:Permission Denied:Only the sole Shorekeeper owner can activate or silence a guild. Shorekeeper will not move without clear authority.
+[PASS] owner guild status reports active embed:Guild Status:This guild is **active**.
+[PASS] owner can disable guild embed:Guild Silenced:Shorekeeper will remain still here until activated again.
+[PASS] inactive guild blocks moderation embed:Permission Denied:This guild is not activated. Shorekeeper remains still until the sole owner enables it. Shorekeeper will not move without clear authority.
+[PASS] owner can re-enable guild embed:Guild Activated:Shorekeeper will watch this guild.
+[PASS] module disable persists {'moderation': 'disabled'}
+[PASS] disabled module blocks kick calls=[] rendered=''
+[PASS] module active persists {'moderation': 'active'}
+[PASS] kick works again calls=[('kick', 'No reason.')]
+[PASS] administrator cannot lockdown embed:Permission Denied:You are not authorized to command emergency lockdown. Shorekeeper will not move without clear authority.
+[PASS] owner lockdown on embed:Emergency Lockdown:Dangerous motion is being constrained. Shorekeeper can still speak where required.
+[PASS] lockdown status active embed:Lockdown Status:State: **active**
+[PASS] owner lockdown off embed:Lockdown Lifted:The shore is open again. Watchfulness remains.
+[PASS] case lookup 1042 embed:Case #1042:Target: <@111111111111111111>
+[PASS] cases list embed:Moderation Cases:#1041 `WARN` ΓÇö spam
+[PASS] giverole executes calls=[('add_roles', ['verified'])]
+[PASS] giverole without role is refused Provide role name or role ID after `;`.
+[PASS] locknick edits nickname calls=[('edit', {'nick': 'Watchful', 'reason': 'Nickname locked by <__main__.FakeMember object at 0x000002B44623D8B0>'})]
+[PASS] disabled anti_nuke module silent 
+[PASS] anti_nuke module active {'moderation': 'active', 'anti_nuke': 'active'}
+[PASS] antinuke status shows DISABLED embed:Anti-Nuke Status:Status: **DISABLED**
+[PASS] antinuke enable enforcement {'enabled': True, 'mode': 'enforcement', 'bot_add_punishment': 'kick', 'trigger_lockdown_on_bot_add': False, 'trigger_lo
+[PASS] antinuke allowlist shows hardcoded owner embed:Anti-Nuke Allowlist:Hard-coded Shorekeeper trust: sole owner `708390973712891976`
+[PASS] core command health responds embed:Health Check:None
+[PASS] core command config responds embed:Server Config:None
+[PASS] core command whoami responds embed:Permission Check:None
+[PASS] core command shorehelp responds embed:Shorekeeper Commands:Mention commands use `@Shorekeeper command ...`.
+[PASS] core command ping responds Pong! `not measured yet`
+TOTAL=29 FAILED=0
